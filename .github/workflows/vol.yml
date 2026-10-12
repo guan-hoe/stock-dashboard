@@ -37,8 +37,9 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -q -m "Record 30-day implied volatility"
+          git commit -q -m "Record 30-day IV and Gamma Flip profiles"
           git pull -q --rebase origin main
+          git push
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
