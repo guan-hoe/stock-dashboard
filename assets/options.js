@@ -158,11 +158,6 @@
 
       <h3 style="margin:20px 0 8px">${t("hChain")}</h3>
       <div id="chainBox">${chainHTML()}</div>`;
-
-  host.innerHTML = `
-    <h2>${t("h")}</h2>
-    <p class="sub">${t("sub")}</p>
-    ${cellSummary}
     
   if (typeof drawVol === "function") drawVol();
   drawGammaChart();
