@@ -133,43 +133,37 @@
   });
 
   function render() {
-  if (typeof navLink === "function") navLink();
-     const ivFrom = V && (V.aq.length ? V.aq[0][0] : V.cboe.length ? V.cboe[0][0] : null);
-  let cellSummary = (typeof cells === "function") ? cells() : "";
+    navLink();
+    const ivFrom = V && (V.aq.length ? V.aq[0][0] : V.cboe.length ? V.cboe[0][0] : null);
+    host.innerHTML = `
+      <h2>${t("h")}</h2>
+      <p class="sub">${t("sub")}</p>
+      ${cells()}
+      <div class="panel">
+        <div class="op-ctl"><h3 style="margin:0">${t("hVol")}</h3><span class="gap"></span>
+          ${[["3M", 63], ["6M", 126], ["1Y", 252]].map(([l, n]) => `<button type="button" class="vr" data-n="${n}" aria-pressed="${volRange === n}">${l}</button>`).join("")}
+        </div>
+        <div class="lg"><span><i style="background:var(--ivc)"></i>${t("lIV")}</span><span><i style="background:var(--rvc)"></i>${t("lRV30")}</span><span><i style="background:var(--rv10)"></i>${t("lRV10")}</span><span><i style="background:var(--up);height:8px;vertical-align:0"></i>${t("lSpr")}</span></div>
+        <div class="vol-tip" id="volTip"></div>
+        <div class="vol-main" id="volMain"></div>
+        <div class="vol-spr" id="volSpr"><span class="lab2">IV − RV30</span></div>
+        ${ivFrom ? `<p class="op-note">${esc(t("ivNote")(dlong(ivFrom)))}</p>` : ""}
+      </div>         
+      
+      <div class="panel" style="margin-bottom:16px; width:100%">
+         <h3 style="margin:0 0 4px">${t("hGamma")}</h3>
+         <div class="gamma-tip">—</div>
+         <div class="gamma-main" id="gammaChartContainer"></div>
+      </div>
+
+      <h3 style="margin:20px 0 8px">${t("hChain")}</h3>
+      <div id="chainBox">${chainHTML()}</div>`;
 
   host.innerHTML = `
     <h2>${t("h")}</h2>
     <p class="sub">${t("sub")}</p>
     ${cellSummary}
     
-    <div class="panel" style="margin-bottom:16px; width:100%">
-      <div class="op-ctl">
-        <h3 style="margin:0">${t("hVol")}</h3>
-        <span class="gap"></span>
-        ${[["3M", 63], ["6M", 126], ["1Y", 252]].map(([l, n]) => '<button type="button" class="vr" data-n="' + n + '" aria-pressed="' + (volRange === n) + '">' + l + '</button>').join("")}
-      </div>
-      <div class="lg">
-        <span><i style="background:var(--ivc)"></i>${t("lIV")}</span>
-        <span><i style="background:var(--rvc)"></i>${t("lRV30")}</span>
-        <span><i style="background:var(--rv10)"></i>${t("lRV10")}</span>
-        <span><i style="background:var(--accent || '#3b82f6');height:8px;vertical-align:0"></i>${t("lSpr")}</span>
-      </div>
-      <div class="vol-tip" id="volTip"></div>
-      <div class="vol-main" id="volMain"></div>
-      <div class="vol-spr" id="volSpr"><span class="lab2">IV − RV30</span></div>
-      ${ivFrom ? '<p class="op-note" style="margin-bottom:0">' + esc(t("ivNote")(dlong(ivFrom))) + '</p>' : ""}
-    </div>
-    
-    <div class="panel" style="margin-bottom:16px; width:100%">
-      <h3 style="margin:0 0 4px">${t("hGamma")}</h3>
-      <div class="gamma-tip">—</div>
-      <div class="gamma-main" id="gammaChartContainer"></div>
-    </div>
-    
-    <h3 style="margin:20px 0 8px">${t("hChain")}</h3>
-    <div id="chainBox">${(typeof chainHTML === "function") ? chainHTML() : ""}</div>
-  `;
-
   if (typeof drawVol === "function") drawVol();
   drawGammaChart();
 }
