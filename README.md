@@ -89,7 +89,7 @@ Note: GitHub pauses scheduled workflows in a repo with no activity for 60 days. 
 1. Create a public repo named `stock-dashboard`.
 2. Upload everything in this repo.
 3. Settings → Pages → Source: **GitHub Actions**.
-4. Sites appear at `https://angcharles.github.io/stock-dashboard/` plus `/arm/`, `/tesla/`, `/sndk/` and `/intc/`.
+4. Sites appear at `https://guan-hoe.github.io/stock-dashboard/` plus `/arm/`, `/tesla/`, `/sndk/` and `/intc/`.
 
 For information only, not investment advice. Not affiliated with Arm Holdings plc, Tesla, Inc., Sandisk Corporation or Intel Corporation.
 
