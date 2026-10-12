@@ -45,7 +45,7 @@ async function getJSON(url, tries = 3) {
   throw err;
 }
 
-const cboe = (t) => getJSON(`https://cboe.com{encodeURIComponent(t)}.json`);
+const cboe = (t) => getJSON(`https://cdn.cboe.com/api/global/delayed_quotes/options/${encodeURIComponent(t)}.json`);
 // Cboe quotes IV either as a fraction or in percent depending on the field; return percent
 const pctIV = (x) => (x == null || !isFinite(x) || x <= 0 ? null : x < 5 ? x * 100 : x);
 
@@ -185,7 +185,7 @@ async function iv(dir, tick) {
   };
   const notes = [];
   try {
-    const r = await fetch(`https://alphaquery.com{encodeURIComponent(tick)}&perType=30-Day&identifier=iv-mean`,
+    const r = await fetch(`https://www.alphaquery.com/data/option-statistic-chart?ticker=${encodeURIComponent(tick)}&perType=30-Day&identifier=iv-mean`,
       { headers: { "User-Agent": UA, Accept: "application/json" }, signal: AbortSignal.timeout(30000) });
     const a = r.ok ? await r.json() : [];
     const pts = (Array.isArray(a) ? a : []).map((p) => [String(p.x).slice(0, 10), p.value * 100]);
