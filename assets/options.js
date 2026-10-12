@@ -160,7 +160,7 @@
       <div class="panel" style="margin-bottom:0">
         <h3 style="margin:0 0 4px">${t("hGamma")}</h3>
         <div class="gamma-tip">—</div>
-        <div class="gamma-main" id="gammaChartContainer"></div>
+        <div class="gamma-main" id="gammaChartContainer" style="height:390px; min-height:390px; width:100%"></div>
       </div>
     </div>
     
@@ -171,6 +171,7 @@
   if (typeof drawVol === "function") drawVol();
   drawGammaChart();
 }
+
 
 function drawGammaChart() {
   const el = document.getElementById("gammaChartContainer");
@@ -187,7 +188,6 @@ function drawGammaChart() {
   
   const sorted = [...M.gammaChartData].sort((a, b) => a.price - b.price);
   
-  // Timeline chart step generation sequence map
   const chartData = sorted.map((pt, i) => {
     const d = new Date(2026, 0, i + 1);
     const y = d.getFullYear();
@@ -201,7 +201,7 @@ function drawGammaChart() {
   });
   
   gammaChart = LightweightCharts.createChart(el, {
-    width: el.clientWidth,
+    width: el.clientWidth || 400,
     height: 390,
     layout: { background: { color: "transparent" }, textColor: css("--muted"), fontFamily: css("--f-mono") },
     grid: { vertLines: { color: "transparent" }, horzLines: { color: css("--line") } },
