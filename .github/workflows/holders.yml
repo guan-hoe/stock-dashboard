@@ -35,7 +35,7 @@ jobs:
 
       - name: Build holders.json for every stock
         env:
-          SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT || 'stock-dashboard/1.0 (github.com/angcharles/stock-dashboard)' }}
+          SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT || 'stock-dashboard/1.0 (github.com/guan-hoe/stock-dashboard)' }}
         run: |
           set -o pipefail
           # stderr also goes to annotations so the result shows on the run summary
