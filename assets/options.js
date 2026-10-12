@@ -17,7 +17,7 @@
     after.after(host);
   }
   host.setAttribute("aria-label", "Options");
-  const LW_SRC = "https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js";
+  const LW_SRC = "https://jsdelivr.net";
 
   const L = {
     en: {
@@ -83,27 +83,25 @@
 
   const st = document.createElement("style");
   st.textContent = `
-  :root{--ivc:#c2410c;--rvc:#0b6fb8;--rv10:#94a3b8}
-  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ivc:#fb923c;--rvc:#4fa8e8;--rv10:#64748b}}
-  :root[data-theme="dark"]{--ivc:#fb923c;--rvc:#4fa8e8;--rv10:#64748b}
-  #options .op-cells{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:16px}
-  #options .op-split-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
-  @media(max-width:900px){#options .op-split-layout{grid-template-columns:1fr}}
-  #options h3{font:600 15px var(--f-body);margin:0 0 8px}
-  #options .op-ctl{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
-  #options .op-ctl button{font:500 11.5px var(--f-mono);border:1px solid var(--line);background:transparent;color:var(--muted);padding:3px 8px;border-radius:4px;cursor:pointer;white-space:nowrap}
-  #options .op-ctl button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
-  #options .op-ctl button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  #options .op-ctl .lab{white-space:nowrap;font:500 11px var(--f-mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
-  #options .op-ctl .gap{flex:1}
-  #options .op-ctl button sup{font-size:8.5px;margin-left:2px;opacity:.8}
-  #options .op-exp{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;scrollbar-width:thin}
-  #options .lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:6px}
-  #options .lg i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px}
-  #options .vol-main{height:300px}#options .vol-spr{height:90px;border-top:1px dashed var(--line);position:relative}
-  #options .vol-spr .lab2{position:absolute;left:4px;top:3px;z-index:2;font:600 10px var(--f-mono);color:var(--muted);letter-spacing:.06em;pointer-events:none}
-  #options .gamma-main{height:390px}
-  #options .vol-tip, #options .gamma-tip{font:500 11.5px var(--f-mono);color:var(--muted);min-height:17px;margin:2px 0 4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    :root{--ivc:#c2410c;--rvc:#0b6fb8;--rv10:#94a3b8}
+    @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ivc:#fb923c;--rvc:#4fa8e8;--rv10:#64748b}}
+    :root[data-theme="dark"]{--ivc:#fb923c;--rvc:#4fa8e8;--rv10:#64748b}
+    #options .op-cells{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:16px}
+    #options h3{font:600 15px var(--f-body);margin:0 0 8px}
+    #options .op-ctl{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+    #options .op-ctl button{font:500 11.5px var(--f-mono);border:1px solid var(--line);background:transparent;color:var(--muted);padding:3px 8px;border-radius:4px;cursor:pointer;white-space:nowrap}
+    #options .op-ctl button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+    #options .op-ctl button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+    #options .op-ctl .lab{white-space:nowrap;font:500 11px var(--f-mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
+    #options .op-ctl .gap{flex:1}
+    #options .op-ctl button sup{font-size:8.5px;margin-left:2px;opacity:.8}
+    #options .op-exp{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;scrollbar-width:thin}
+    #options .lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:6px}
+    #options .lg i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px}
+    #options .vol-main{height:300px}#options .vol-spr{height:90px;border-top:1px dashed var(--line);position:relative}
+    #options .vol-spr .lab2{position:absolute;left:4px;top:3px;z-index:2;font:600 10px var(--f-mono);color:var(--muted);letter-spacing:.06em;pointer-events:none}
+    #options .gamma-main{height:390px;width:100%}
+    #options .vol-tip, #options .gamma-tip{font:500 11.5px var(--f-mono);color:var(--muted);min-height:17px;margin:2px 0 4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   `;
   document.head.appendChild(st);
 
@@ -114,7 +112,6 @@
     const s = document.createElement("script"); s.src = src; s.async = true; s.onload = cb; document.head.appendChild(s);
   }
 
-  // Load all data packages in a single parallel stream
   Promise.all([
     fetch("data/options.json").then((r) => r.json()).catch(() => null),
     fetch("vol.json").then((r) => r.json()).catch(() => null),
@@ -127,50 +124,46 @@
   });
 
   function render() {
-    if (typeof navLink === "function") navLink();
-    const ivFrom = V && (V.aq.length ? V.aq : V.cboe.length ? V.cboe : null);
-    let cellSummary = (typeof cells === "function") ? cells() : "";
+  if (typeof navLink === "function") navLink();
+  const ivFrom = V && (V.aq.length ? V.aq : V.cboe.length ? V.cboe : null);
+  let cellSummary = (typeof cells === "function") ? cells() : "";
 
-    host.innerHTML = `
-      <h2>${t("h")}</h2>
-      <p class="sub">${t("sub")}</p>
-      ${cellSummary}
-      
-      <!-- Volatility Analysis Block (Full Width) -->
-      <div class="panel" style="margin-bottom:16px">
-        <div class="op-ctl">
-          <h3 style="margin:0">${t("hVol")}</h3>
-          <span class="gap"></span>
-          ${[["3M", 63], ["6M", 126], ["1Y", 252]].map(([l, n]) => `<button type="button" class="vr" data-n="\${n}" aria-pressed="volRange === n">{l}</button>`).join("")}
-        </div>
-        <div class="lg">
-          <span><i style="background:var(--ivc)"></i>${t("lIV")}</span>
-          <span><i style="background:var(--rvc)"></i>${t("lRV30")}</span>
-          <span><i style="background:var(--rv10)"></i>${t("lRV10")}</span>
-          <span><i style="background:var(--up||'#3b82f6');height:8px;vertical-align:0"></i>${t("lSpr")}</span>
-        </div>
-        <div class="vol-tip" id="volTip"></div>
-        <div class="vol-main" id="volMain"></div>
-        <div class="vol-spr" id="volSpr"><span class="lab2">IV − RV30</span></div>
-        ${ivFrom ? `<p class="op-note" style="margin-bottom:0"\(>\text{\${esc(t("ivNote")(dlong(ivFrom)))}}\)</p>` : ""}
+  host.innerHTML = `
+    <h2>${t("h")}</h2>
+    <p class="sub">${t("sub")}</p>
+    ${cellSummary}
+    
+    <div class="panel" style="margin-bottom:16px; width:100%">
+      <div class="op-ctl">
+        <h3 style="margin:0">${t("hVol")}</h3>
+        <span class="gap"></span>
+        ${[["3M", 63], ["6M", 126], ["1Y", 252]].map(([l, n]) => `<button type="button" class="vr" data-n="\${n}" aria-pressed="volRange === n">{l}</button>`).join("")}
       </div>
-      
-      <!-- Dealer Options Gamma Profile Block (Moved to Independent Full-Width Sub-Table Space) -->
-      <div class="panel" style="margin-bottom:16px">
-        <h3 style="margin:0 0 4px">${t("hGamma")}</h3>
-        <div class="gamma-tip">—</div>
-        <div class="gamma-main" id="gammaChartContainer" style="height:390px; min-height:390px; width:100%"></div>
+      <div class="lg">
+        <span><i style="background:var(--ivc)"></i>${t("lIV")}</span>
+        <span><i style="background:var(--rvc)"></i>${t("lRV30")}</span>
+        <span><i style="background:var(--rv10)"></i>${t("lRV10")}</span>
+        <span><i style="background:var(--accent || '#3b82f6');height:8px;vertical-align:0"></i>${t("lSpr")}</span>
       </div>
-      
-      <!-- Option Chain Matrix Grid Section -->
-      <h3 style="margin:20px 0 8px">${t("hChain")}</h3>
-      <div id="chainBox">${(typeof chainHTML === "function") ? chainHTML() : ""}</div>
-    `;
+      <div class="vol-tip" id="volTip"></div>
+      <div class="vol-main" id="volMain"></div>
+      <div class="vol-spr" id="volSpr"><span class="lab2">IV − RV30</span></div>
+      ${ivFrom ? `<p class="op-note" style="margin-bottom:0">\${esc(t("ivNote")(dlong(ivFrom)))}</p>` : ""}
+    </div>
+    
+    <div class="panel" style="margin-bottom:16px; width:100%">
+      <h3 style="margin:0 0 4px">${t("hGamma")}</h3>
+      <div class="gamma-tip">—</div>
+      <div class="gamma-main" id="gammaChartContainer"></div>
+    </div>
+    
+    <h3 style="margin:20px 0 8px">${t("hChain")}</h3>
+    <div id="chainBox">${(typeof chainHTML === "function") ? chainHTML() : ""}</div>
+  `;
 
-    if (typeof drawVol === "function") drawVol();
-    if (typeof drawGammaChart === "function") drawGammaChart();
-  }
-
+  if (typeof drawVol === "function") drawVol();
+  drawGammaChart();
+}
 
 function drawGammaChart() {
   const el = document.getElementById("gammaChartContainer");
@@ -187,6 +180,7 @@ function drawGammaChart() {
   
   const sorted = [...M.gammaChartData].sort((a, b) => a.price - b.price);
   
+  // Timeline scaling converter transformer loops maps
   const chartData = sorted.map((pt, i) => {
     const d = new Date(2026, 0, i + 1);
     const y = d.getFullYear();
@@ -200,16 +194,16 @@ function drawGammaChart() {
   });
   
   gammaChart = LightweightCharts.createChart(el, {
-    width: el.clientWidth || 800, // Expanded fallback width for stand-alone layout
+    width: el.clientWidth || 800,
     height: 390,
     layout: { background: { color: "transparent" }, textColor: css("--muted"), fontFamily: css("--f-mono") },
     grid: { vertLines: { color: "transparent" }, horzLines: { color: css("--line") } },
-    leftPriceScale: { 
-      visible: true, // Forces data values to render on the primary left axis
-      borderVisible: false 
+    leftPriceScale: {
+      visible: true,
+      borderVisible: false
     },
-    rightPriceScale: { 
-      visible: false // Disables the right panel sidebar alignment engine completely
+    rightPriceScale: {
+      visible: false
     },
     timeScale: {
       borderVisible: false,
@@ -223,7 +217,7 @@ function drawGammaChart() {
   });
   
   const area = gammaChart.addAreaSeries({
-    priceScaleId: 'left', // Links dataset variables directly to the left horizontal metrics space
+    priceScaleId: 'left',
     topColor: "rgba(16, 185, 129, 0.2)",
     bottomColor: "rgba(239, 68, 68, 0.2)",
     lineColor: css("--accent") || "#3b82f6",
@@ -259,7 +253,7 @@ function drawGammaChart() {
   window.addEventListener("resize", () => { if (gammaChart && el) gammaChart.resize(el.clientWidth, 390); });
 }
 
-// Placeholder hooks ensuring internal methods remain safe if defined further down
+// Fallback structural initialization hooks matching dependencies down-stream
 if (typeof drawVol !== "function") window.drawVol = function(){};
 if (typeof cells !== "function") window.cells = function(){ return ""; };
 if (typeof chainHTML !== "function") window.chainHTML = function(){ return ""; };
