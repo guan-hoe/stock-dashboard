@@ -112,14 +112,23 @@
     const s = document.createElement("script"); s.src = src; s.async = true; s.onload = cb; document.head.appendChild(s);
   }
 
+  // Load all data packages in a single parallel stream with safety catches
   Promise.all([
-    fetch("data/options.json").then((r) => r.json()).catch(() => null),
-    fetch("vol.json").then((r) => r.json()).catch(() => null),
-    fetch("data/history.json").then((r) => r.json()).catch(() => null),
-    fetch("mgmt.json").then((r) => r.json()).catch(() => null),
+    fetch("data/options.json").then((r) => r.ok ? r.json() : null).catch(() => null),
+    fetch("vol.json").then((r) => r.ok ? r.json() : null).catch(() => null),
+    fetch("data/history.json").then((r) => r.ok ? r.json() : null).catch(() => null),
+    fetch("mgmt.json").then((r) => r.ok ? r.json() : null).catch(() => null),
   ]).then(([opt, vol, hist, mgmt]) => {
-    if (!opt) { failed = true; host.innerHTML = `<div class="card" style="padding:24px;text-align:center;color:var(--muted);font-size:13px">${t("none")}</div>`; return; }
-    O = opt; V = vol; H = hist; M = mgmt;
+    // If the core options data fails, show the none message
+    if (!opt) { 
+      failed = true; 
+      host.innerHTML = `<div class="card" style="padding:24px;text-align:center;color:var(--muted);font-size:13px">${t("none")}</div>`; 
+      return; 
+    }
+    O = opt; 
+    V = vol; 
+    H = hist; 
+    M = mgmt;
     loadScript(LW_SRC, render);
   });
 
