@@ -148,7 +148,7 @@
       <div class="vol-tip" id="volTip"></div>
       <div class="vol-main" id="volMain"></div>
       <div class="vol-spr" id="volSpr"><span class="lab2">IV − RV30</span></div>
-      ${ivFrom ? `<p class="op-note" style="margin-bottom:0">\${esc(t("ivNote")(dlong(ivFrom)))}</p>` : ""}
+      ${ivFrom ? '<p class="op-note" style="margin-bottom:0">' + esc(t("ivNote")(dlong(ivFrom))) + '</p>' : ""}
     </div>
     
     <div class="panel" style="margin-bottom:16px; width:100%">
