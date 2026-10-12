@@ -217,9 +217,14 @@ for (const [dir, tick] of list) {
     if (mode === "chain") msg = await chain(dir, tick);
     else if (mode === "iv") msg = await iv(dir, tick);
     else if (mode === "gamma") msg = await gamma(dir, tick);
-    console.log(${tick}: ${msg}); summary(- ${tick}: ${msg}); brief.push(${tick} ${msg.split(",")[0]});
-} catch (e) {
-console.log(${tick}: skipped (${e.message})); summary(- ${tick}: skipped (${e.message})); brief.push(${tick} skipped);
+    
+    console.log(`${tick}: ${msg}`); 
+    summary(`- ${tick}: ${msg}`); 
+    brief.push(`${tick} ${msg.split(",")[0]}`);
+  } catch (e) {
+    console.log(`${tick}: skipped (${e.message})`); 
+    summary(`- ${tick}: skipped (${e.message})`); 
+    brief.push(`${tick} skipped`);
+  }
 }
-}
-if (process.env.GITHUB_ACTIONS) console.log(::notice title=Options ${mode}::${brief.join(" · ")});
+if (process.env.GITHUB_ACTIONS) console.log(`::notice title=Options ${mode}::${brief.join(" · ")}`);
