@@ -11,7 +11,6 @@
 //       aq   = 30-day IV (mean of calls and puts) from alphaquery, which serves the last ~3 months
 //       cboe = Cboe's 30-day IV index for the stock, one reading per trading day from now on
 //     Run once a day after the close by .github/workflows/vol.yml.
-//
 //   node scripts/fetch-options.mjs gamma [dir ...]
 //     Aggregates all multi-expiry contracts from Cboe, maps option positioning distributions via 
 //     Black-Scholes, locates where net dealer positioning crosses zero, and updates <dir>/mgmt.json.
@@ -45,20 +44,77 @@ async function getJSON(url, tries = 3) {
   throw err;
 }
 
-const cboe = (t) => getJSON(`https://cboe.com{encodeURIComponent(t)}.json`);
+const cboe = (t) => getJSON(`https://cdn.cboe.com/api/global/delayed_quotes/options/${encodeURIComponent(t)}.json`);
 // Cboe quotes IV either as a fraction or in percent depending on the field; return percent
 const pctIV = (x) => (x == null || !isFinite(x) || x <= 0 ? null : x < 5 ? x * 100 : x);
 
-// Math helper for normal probability distribution approximation
-function normalPDF(x) {
-  return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+async function chain(dir, tick) {
+  const j = await cboe(tick);
+  const d = j.data || {};
+  const spot = d.current_price || d.close || d.prev_day_close;
+  if (!spot || !Array.isArray(d.options)) throw new Error("no chain");
+  const today = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+  today.setHours(0, 0, 0, 0);
+  const by = new Map();
+  for (const o of d.options) {
+    const m = /^([A-Z.]+?)(\d{6})([CP])(\d{8})$/.exec(o.option || "");
+    if (!m) continue;
+    const exp = `20${m[2].slice(0, 2)}-${m[2].slice(2, 4)}-${m[2].slice(4, 6)}`;
+    const days = (new Date(exp + "T00:00:00") - today) / 864e5;
+    if (days < 0 || days > MAX_DAYS) continue;
+    const k = +m[4] / 1000;
+    if (k < spot * LO || k > spot * HI) continue;
+    if (!by.has(exp)) by.set(exp, new Map());
+    const row = by.get(exp).get(k) || { k };
+    row[m[3]] = [r2(o.bid), r2(o.ask), r2(o.last_trade_price), o.volume || 0, o.open_interest || 0, r2(pctIV(o.iv)), r4(o.delta)];
+    by.get(exp).set(k, row);
+  }
+  // nearest 6 expiries (dailies and weeklies), then the monthly (3rd Friday) ones further out
+  const isMonthly = (e) => { const x = new Date(e + "T12:00:00Z"); return x.getUTCDay() === 5 && x.getUTCDate() >= 15 && x.getUTCDate() <= 21; };
+  const all = [...by.keys()].sort();
+  const exps = [...new Set([...all.slice(0, 6), ...all.filter(isMonthly)])].sort().slice(0, MAX_EXP);
+  const E = [null, null, null, 0, 0, null, null];
+  const out = {
+    symbol: tick, spot: r2(spot), asof: d.last_trade_time || j.timestamp || null, trade_date: String(d.last_trade_time || "").slice(0, 10) || null, fetched: new Date().toISOString(),
+    iv30: r2(pctIV(d.iv30)), iv30_change: r2(d.iv30_change), source: "Cboe delayed quotes (15 min)",
+    // rows: [strike, call: bid, ask, last, volume, OI, IV %, delta, put: same 7]
+    expiries: exps.map((e) => ({ d: e, rows: [...by.get(e).values()].sort((a, b) => a.k - b.k).map((r) => [r.k, ...(r.C || E), ...(r.P || E)]) })),
+  };
+  if (!out.expiries.length) throw new Error("no listed expiries in range");
+  writeFileSync(`${dir}/data/options.json`, JSON.stringify(out));
+  return `${out.expiries.length} expiries, ${out.expiries.reduce((s, e) => s + e.rows.length, 0)} strikes, IV30 ${out.iv30}`;
 }
 
-// Analytical Black-Scholes Gamma formula model engine
-function calculateBSGamma(S, K, T, r, sigma) {
-  if (T <= 0 || sigma <= 0 || S <= 0 || K <= 0) return 0;
-  const d1 = (Math.log(S / K) + (r + (sigma ** 2) / 2) * T) / (sigma * Math.sqrt(T));
-  return normalPDF(d1) / (S * sigma * Math.sqrt(T));
+async function iv(dir, tick) {
+  const f = `${dir}/vol.json`;
+  let V = { symbol: tick, aq: [], cboe: [] };
+  try { if (existsSync(f)) V = { ...V, ...JSON.parse(readFileSync(f, "utf8")) }; } catch (e) {}
+  const merge = (arr, pts) => {
+    const m = new Map(arr);
+    for (const [k, v] of pts) if (v != null && isFinite(v) && v > 0) m.set(k, Math.round(v * 100) / 100);
+    return [...m].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  };
+  const notes = [];
+  try {
+    const r = await fetch(`https://www.alphaquery.com/data/option-statistic-chart?ticker=${encodeURIComponent(tick)}&perType=30-Day&identifier=iv-mean`,
+      { headers: { "User-Agent": UA, Accept: "application/json" }, signal: AbortSignal.timeout(30000) });
+    const a = r.ok ? await r.json() : [];
+    const pts = (Array.isArray(a) ? a : []).map((p) => [String(p.x).slice(0, 10), p.value * 100]);
+    V.aq = merge(V.aq, pts);
+    notes.push(`aq ${pts.length}`);
+  } catch (e) { notes.push("aq failed: " + e.message); }
+  try {
+    const j = await cboe(tick);
+    const d = j.data || {};
+    // the quote's own trading day (the fetch timestamp can fall on a weekend)
+    const date = String(d.last_trade_time || j.timestamp || "").slice(0, 10) || new Date().toISOString().slice(0, 10);
+    const v = pctIV(d.iv30);
+    if (v) V.cboe = merge(V.cboe, [[date, v]]);
+    notes.push(`cboe ${v ? v.toFixed(1) : "n/a"}`);
+  } catch (e) { notes.push("cboe failed: " + e.message); }
+  V.updated = new Date().toISOString().slice(0, 10);
+  if (V.aq.length || V.cboe.length) writeFileSync(f, JSON.stringify(V) + "\n");
+  return notes.join(", ");
 }
 
 async function gamma(dir, tick) {
@@ -84,7 +140,7 @@ async function gamma(dir, tick) {
 
   // Process and compute aggregate multi-expiry positioning configurations
   for (const o of d.options) {
-    const m = /^([A-Z.]+?)(\d{6})([CP])(\d{8})$/.exec(o.option || "");
+    const m = /^([A-Z.]+?)(\d{6})([CP])(\d{8})\$/.exec(o.option || "");
     if (!m) continue;
 
     const exp = `20${m[2].slice(0, 2)}-${m[2].slice(2, 4)}-${m[2].slice(4, 6)}`;
@@ -137,67 +193,18 @@ async function gamma(dir, tick) {
   return `Flip strike estimated at $${M.gammaFlipStrike} (${M.marketState})`;
 }
 
-async function chain(dir, tick) {
-  const j = await cboe(tick);
-  const d = j.data || {};
-  const spot = d.current_price || d.close || d.prev_day_close;
-  if (!spot || !Array.isArray(d.options)) throw new Error("no chain");
-  const today = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
-  today.setHours(0, 0, 0, 0);
-  const by = new Map();
-  for (const o of d.options) {
-    const m = /^([A-Z.]+?)(\d{6})([CP])(\d{8})$/.exec(o.option || "");
-    if (!m) continue;
-    const exp = `20${m[2].slice(0, 2)}-${m[2].slice(2, 4)}-${m[2].slice(4, 6)}`;
-    const days = (new Date(exp + "T00:00:00") - today) / 864e5;
-    if (days < 0 || days > MAX_DAYS) continue;
-    const k = +m[4] / 1000;
-    if (k < spot * LO || k > spot * HI) continue;
-    if (!by.has(exp)) by.set(exp, new Map());
-    const row = by.get(exp).get(k) || { k };
-    row[m[3]] = [r2(o.bid), r2(o.ask), r2(o.last_trade_price), o.volume || 0, o.open_interest || 0, r2(pctIV(o.iv)), r4(o.delta)];
-    by.get(exp).set(k, row);
+const [mode, ...pick] = process.argv.slice(2);
+if (!["chain", "iv"].includes(mode)) { console.error("usage: fetch-options.mjs chain|iv [dir ...]"); process.exit(2); }
+const list = STOCKS.filter(([d, t]) => !pick.length || pick.includes(d) || pick.includes(t));
+summary(`### Options: ${mode}`);
+const brief = [];
+for (const [dir, tick] of list) {
+  try {
+    const msg = await (mode === "chain" ? chain(dir, tick) : iv(dir, tick));
+    console.log(`${tick}: ${msg}`); summary(`- ${tick}: ${msg}`); brief.push(`${tick} ${msg.split(",")[0]}`);
+  } catch (e) {
+    console.log(`${tick}: skipped (${e.message})`); summary(`- ${tick}: skipped (${e.message})`); brief.push(`${tick} skipped`);
   }
-  // nearest 6 expiries (dailies and weeklies), then the monthly (3rd Friday) ones further out
-  const isMonthly = (e) => { const x = new Date(e + "T12:00:00Z"); return x.getUTCDay() === 5 && x.getUTCDate() >= 15 && x.getUTCDate() <= 21; };
-  const all = [...by.keys()].sort();
-  const exps = [...new Set([...all.slice(0, 6), ...all.filter(isMonthly)])].sort().slice(0, MAX_EXP);
-  const E = [null, null, null, 0, 0, null, null];
-  const out = {
-    symbol: tick, spot: r2(spot), asof: d.last_trade_time || j.timestamp || null, trade_date: String(d.last_trade_time || "").slice(0, 10) || null, fetched: new Date().toISOString(),
-    iv30: r2(pctIV(d.iv30)), iv30_change: r2(d.iv30_change), source: "Cboe delayed quotes (15 min)",
-    // rows: [strike, call: bid, ask, last, volume, OI, IV %, delta, put: same 7]
-    expiries: exps.map((e) => ({ d: e, rows: [...by.get(e).values()].sort((a, b) => a.k - b.k).map((r) => [r.k, ...(r.C || E), ...(r.P || E)]) })),
-  };
-  if (!out.expiries.length) throw new Error("no listed expiries in range");
-  writeFileSync(`${dir}/data/options.json`, JSON.stringify(out));
-  return `${out.expiries.length} expiries, ${out.expiries.reduce((s, e) => s + e.rows.length, 0)} strikes, IV30 ${out.iv30}`;
 }
+if (process.env.GITHUB_ACTIONS) console.log(`::notice title=Options ${mode}::${brief.join(" · ")}`);
 
-async function iv(dir, tick) {
-  const f = `${dir}/vol.json`;
-  let V = { symbol: tick, aq: [], cboe: [] };
-  try { if (existsSync(f)) V = { ...V, ...JSON.parse(readFileSync(f, "utf8")) }; } catch (e) {}
-  const merge = (arr, pts) => {
-    const m = new Map(arr);
-    for (const [k, v] of pts) if (v != null && isFinite(v) && v > 0) m.set(k, Math.round(v * 100) / 100);
-    return [...m].sort((a, b) => (a[0] < b[0] ? -1 : 1));
-  };
-  const notes = [];
-  try {
-    const r = await fetch(`https://alphaquery.com{encodeURIComponent(tick)}&perType=30-Day&identifier=iv-mean`,
-      { headers: { "User-Agent": UA, Accept: "application/json" }, signal: AbortSignal.timeout(30000) });
-    const a = r.ok ? await r.json() : [];
-    const pts = (Array.isArray(a) ? a : []).map((p) => [String(p.x).slice(0, 10), p.value * 100]);
-    V.aq = merge(V.aq, pts);
-    notes.push(`aq ${pts.length}`);
-  } catch (e) { notes.push("aq failed: " + e.message); }
-  try {
-    const j = await cboe(tick);
-    const d = j.data || {};
-    // the quote's own trading day (the fetch timestamp can fall on a weekend)
-    const date = String(d.last_trade_time || j.timestamp || "").slice(0, 10) || new Date().toISOString().slice(0, 10);
-    const v = pctIV(d.iv30);
-    if (v) V.cboe = merge(V.cboe, [[date, v]]);
-    notes.push(`cboe ${v ? v.toFixed(1) : "n/a"}`);
-  } catch (e) { notes.push("cboe failed: " + e.message); }
