@@ -215,10 +215,9 @@ for (const [dir, tick] of list) {
   try {
     let msg;
     if (mode === "chain") msg = await chain(dir, tick);
-Use code with caution.
-else if (mode === "iv") msg = await iv(dir, tick);
-else if (mode === "gamma") msg = await gamma(dir, tick);
-console.log(${tick}: ${msg}); summary(- ${tick}: ${msg}); brief.push(${tick} ${msg.split(",")[0]});
+    else if (mode === "iv") msg = await iv(dir, tick);
+    else if (mode === "gamma") msg = await gamma(dir, tick);
+    console.log(${tick}: ${msg}); summary(- ${tick}: ${msg}); brief.push(${tick} ${msg.split(",")[0]});
 } catch (e) {
 console.log(${tick}: skipped (${e.message})); summary(- ${tick}: skipped (${e.message})); brief.push(${tick} skipped);
 }
