@@ -25,8 +25,15 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install calculation and data processing packages
+        run: |
+          npm install simple-statistics
+          
       - name: Add today's 30-day IV to each stock's vol.json
         run: node scripts/fetch-options.mjs iv
+
+      - name: Compute aggregate multi-expiry gamma flip point
+        run: node scripts/fetch-options.mjs gamma
 
       - name: Commit if changed
         id: commit
