@@ -2,34 +2,34 @@
 
 Investor dashboards, EN / 中文, light / dark:
 
-- **Arm Holdings (ARM)** — `arm/index.html` → https://angcharles.github.io/stock-dashboard/arm/
-- **Tesla (TSLA)** — `tesla/index.html` → https://angcharles.github.io/stock-dashboard/tesla/
-- **Sandisk (SNDK)** — `sndk/index.html` → https://angcharles.github.io/stock-dashboard/sndk/
-- **Intel (INTC)** — `intc/index.html` → https://angcharles.github.io/stock-dashboard/intc/
-- **SpaceX (SPCX)** — `spcx/index.html` → https://angcharles.github.io/stock-dashboard/spcx/
-- **Micron (MU)** — `mu/index.html` → https://angcharles.github.io/stock-dashboard/mu/
-- **Lumentum (LITE)** — `lite/index.html` → https://angcharles.github.io/stock-dashboard/lite/
-- **Coherent (COHR)** — `cohr/index.html` → https://angcharles.github.io/stock-dashboard/cohr/
-- **Alphabet (GOOGL)** — `googl/index.html` → https://angcharles.github.io/stock-dashboard/googl/
-- **Meta (META)** — `meta/index.html` → https://angcharles.github.io/stock-dashboard/meta/
-- **NVIDIA (NVDA)** — `nvda/index.html` → https://angcharles.github.io/stock-dashboard/nvda/
-- **Zscaler (ZS)** — `zs/index.html` → https://angcharles.github.io/stock-dashboard/zs/
-- **Bloom Energy (BE)** — `be/index.html` → https://angcharles.github.io/stock-dashboard/be/
-- **Applied Optoelectronics (AAOI)** — `aaoi/index.html` → https://angcharles.github.io/stock-dashboard/aaoi/
-- **AMD (AMD)** — `amd/index.html` → https://angcharles.github.io/stock-dashboard/amd/
-- **MP Materials (MP)** — `mp/index.html` → https://angcharles.github.io/stock-dashboard/mp/
-- **Amazon (AMZN)** — `amzn/index.html` → https://angcharles.github.io/stock-dashboard/amzn/
-- **Microsoft (MSFT)** — `msft/index.html` → https://angcharles.github.io/stock-dashboard/msft/
-- **Marvell (MRVL)** — `mrvl/index.html` → https://angcharles.github.io/stock-dashboard/mrvl/
-- **SK hynix (SKHY)** — `skhy/index.html` → https://angcharles.github.io/stock-dashboard/skhy/
-- **TSMC (TSM)** — `tsm/index.html` → https://angcharles.github.io/stock-dashboard/tsm/
-- **Broadcom (AVGO)** — `avgo/index.html` → https://angcharles.github.io/stock-dashboard/avgo/
-- **Rockwell Automation (ROK)** — `rok/index.html` → https://angcharles.github.io/stock-dashboard/rok/
-- **Applied Materials (AMAT)** — `amat/index.html` → https://angcharles.github.io/stock-dashboard/amat/
-- **ASML (ASML)** — `asml/index.html` → https://angcharles.github.io/stock-dashboard/asml/
-- **Palantir (PLTR)** — `pltr/index.html` → https://angcharles.github.io/stock-dashboard/pltr/
-- **Corning (GLW)** — `glw/index.html` → https://angcharles.github.io/stock-dashboard/glw/
-- **Teradyne (TER)** — `ter/index.html` → https://angcharles.github.io/stock-dashboard/ter/
+- **Arm Holdings (ARM)** — `arm/index.html` → https://guan-hoe.github.io/stock-dashboard/arm/
+- **Tesla (TSLA)** — `tesla/index.html` → https://guan-hoe.github.io/stock-dashboard/tesla/
+- **Sandisk (SNDK)** — `sndk/index.html` → https://guan-hoe.github.io/stock-dashboard/sndk/
+- **Intel (INTC)** — `intc/index.html` → https://guan-hoe.github.io/stock-dashboard/intc/
+- **SpaceX (SPCX)** — `spcx/index.html` → https://guan-hoe.github.io/stock-dashboard/spcx/
+- **Micron (MU)** — `mu/index.html` → https://guan-hoe.github.io/stock-dashboard/mu/
+- **Lumentum (LITE)** — `lite/index.html` → https://guan-hoe.github.io/stock-dashboard/lite/
+- **Coherent (COHR)** — `cohr/index.html` → https://guan-hoe.github.io/stock-dashboard/cohr/
+- **Alphabet (GOOGL)** — `googl/index.html` → https://guan-hoe.github.io/stock-dashboard/googl/
+- **Meta (META)** — `meta/index.html` → https://guan-hoe.github.io/stock-dashboard/meta/
+- **NVIDIA (NVDA)** — `nvda/index.html` → https://guan-hoe.github.io/stock-dashboard/nvda/
+- **Zscaler (ZS)** — `zs/index.html` → https://guan-hoe.github.io/stock-dashboard/zs/
+- **Bloom Energy (BE)** — `be/index.html` → https://guan-hoe.github.io/stock-dashboard/be/
+- **Applied Optoelectronics (AAOI)** — `aaoi/index.html` → https://guan-hoe.github.io/stock-dashboard/aaoi/
+- **AMD (AMD)** — `amd/index.html` → https://guan-hoe.github.io/stock-dashboard/amd/
+- **MP Materials (MP)** — `mp/index.html` → https://guan-hoe.github.io/stock-dashboard/mp/
+- **Amazon (AMZN)** — `amzn/index.html` → https://guan-hoe.github.io/stock-dashboard/amzn/
+- **Microsoft (MSFT)** — `msft/index.html` → https://guan-hoe.github.io/stock-dashboard/msft/
+- **Marvell (MRVL)** — `mrvl/index.html` → https://guan-hoe.github.io/stock-dashboard/mrvl/
+- **SK hynix (SKHY)** — `skhy/index.html` → https://guan-hoe.github.io/stock-dashboard/skhy/
+- **TSMC (TSM)** — `tsm/index.html` → https://guan-hoe.github.io/stock-dashboard/tsm/
+- **Broadcom (AVGO)** — `avgo/index.html` → https://guan-hoe.github.io/stock-dashboard/avgo/
+- **Rockwell Automation (ROK)** — `rok/index.html` → https://guan-hoe.github.io/stock-dashboard/rok/
+- **Applied Materials (AMAT)** — `amat/index.html` → https://guan-hoe.github.io/stock-dashboard/amat/
+- **ASML (ASML)** — `asml/index.html` → https://guan-hoe.github.io/stock-dashboard/asml/
+- **Palantir (PLTR)** — `pltr/index.html` → https://guan-hoe.github.io/stock-dashboard/pltr/
+- **Corning (GLW)** — `glw/index.html` → https://guan-hoe.github.io/stock-dashboard/glw/
+- **Teradyne (TER)** — `ter/index.html` → https://guan-hoe.github.io/stock-dashboard/ter/
 
 Each page covers price, revenue mix, financials, free cash flow, watch list, calendar and sources. The root `index.html` (https://angcharles.github.io/stock-dashboard/) lists every stock with its latest price.
 
