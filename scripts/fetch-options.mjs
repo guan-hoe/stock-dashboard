@@ -13,6 +13,27 @@
 //     Run once a day after the close by .github/workflows/vol.yml.
 //
 // Failures for one stock never stop the others, and existing files are left alone on failure.
+
+
+// Option data for every stock page.
+//
+//   node scripts/fetch-options.mjs chain [dir ...]
+//     Option chain from Cboe's delayed quotes (15-minute delay, IV and greeks by Cboe), trimmed to
+//     the nearest 6 expiries plus the monthlies out to ~13 months (18 at most) and strikes from 60% to 160% of the share price.
+//     Writes <dir>/data/options.json. Run by the deploy workflow on every price refresh (no commit).
+//
+//   node scripts/fetch-options.mjs iv [dir ...]
+//     Daily 30-day implied volatility. Merges two series into <dir>/vol.json, which is committed so
+//     the history keeps growing:
+//       aq   = 30-day IV (mean of calls and puts) from alphaquery, which serves the last ~3 months
+//       cboe = Cboe's 30-day IV index for the stock, one reading per trading day from now on
+//     Run once a day after the close by .github/workflows/vol.yml.
+//
+//   node scripts/fetch-options.mjs gamma [dir ...]
+//     Aggregates all multi-expiry contracts from Cboe, maps option positioning distributions via 
+//     Black-Scholes, locates where net dealer positioning crosses zero, and updates <dir>/mgmt.json.
+//
+// Failures for one stock never stop the others, and existing files are left alone on failure.
 import { writeFileSync, readFileSync, existsSync, appendFileSync } from "node:fs";
 
 const STOCKS = [
@@ -41,9 +62,97 @@ async function getJSON(url, tries = 3) {
   throw err;
 }
 
-const cboe = (t) => getJSON(`https://cdn.cboe.com/api/global/delayed_quotes/options/${encodeURIComponent(t)}.json`);
+const cboe = (t) => getJSON(`https://cboe.com{encodeURIComponent(t)}.json`);
 // Cboe quotes IV either as a fraction or in percent depending on the field; return percent
 const pctIV = (x) => (x == null || !isFinite(x) || x <= 0 ? null : x < 5 ? x * 100 : x);
+
+// Math helper for normal probability distribution approximation
+function normalPDF(x) {
+  return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+}
+
+// Analytical Black-Scholes Gamma formula model engine
+function calculateBSGamma(S, K, T, r, sigma) {
+  if (T <= 0 || sigma <= 0 || S <= 0 || K <= 0) return 0;
+  const d1 = (Math.log(S / K) + (r + (sigma ** 2) / 2) * T) / (sigma * Math.sqrt(T));
+  return normalPDF(d1) / (S * sigma * Math.sqrt(T));
+}
+
+async function gamma(dir, tick) {
+  const j = await cboe(tick);
+  const d = j.data || {};
+  const spot = d.current_price || d.close || d.prev_day_close;
+  if (!spot || !Array.isArray(d.options)) throw new Error("no chain");
+
+  const today = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+  today.setHours(0, 0, 0, 0);
+
+  // Generate price range scan steps to map out crossover profile points
+  const scanPrices = [];
+  const steps = 120;
+  const minP = spot * 0.75;
+  const maxP = spot * 1.25;
+  for (let i = 0; i <= steps; i++) {
+    scanPrices.push(minP + ((maxP - minP) * i) / steps);
+  }
+
+  const netGammas = new Array(scanPrices.length).fill(0);
+  const riskFreeRate = 0.04; 
+
+  // Process and compute aggregate multi-expiry positioning configurations
+  for (const o of d.options) {
+    const m = /^([A-Z.]+?)(\d{6})([CP])(\d{8})$/.exec(o.option || "");
+    if (!m) continue;
+
+    const exp = `20${m[2].slice(0, 2)}-${m[2].slice(2, 4)}-${m[2].slice(4, 6)}`;
+    const days = (new Date(exp + "T00:00:00") - today) / 864e5;
+    if (days < 0 || days > MAX_DAYS) continue;
+
+    const K = +m[4] / 1000;
+    const oi = o.open_interest || 0;
+    let ivVal = pctIV(o.iv);
+    
+    if (oi <= 0 || !ivVal) continue;
+    ivVal = ivVal / 100; // Scale back to decimals for BS metrics
+    const T = days / 365.0;
+
+    for (let i = 0; i < scanPrices.length; i++) {
+      const S = scanPrices[i];
+      const g = calculateBSGamma(S, K, T, riskFreeRate, ivVal);
+      
+      if (m[3] === "C") {
+        // Dealer short calls rule profile impact
+        netGammas[i] += g * oi * 100;
+      } else if (m[3] === "P") {
+        // Dealer short puts rule profile impact
+        netGammas[i] -= g * oi * 100;
+      }
+    }
+  }
+
+  // Pinpoint zero crossing boundary zone index via linear interpolation
+  let flipPrice = spot;
+  for (let i = 1; i < netGammas.length; i++) {
+    if (Math.sign(netGammas[i]) !== Math.sign(netGammas[i - 1])) {
+      flipPrice = scanPrices[i - 1] + ((0 - netGammas[i - 1]) * (scanPrices[i] - scanPrices[i - 1])) / (netGammas[i] - netGammas[i - 1]);
+      break;
+    }
+  }
+
+  // Update localized metrics directly into mgmt.json files
+  const mgmtFile = `${dir}/mgmt.json`;
+  let M = {};
+  if (existsSync(mgmtFile)) {
+    try { M = JSON.parse(readFileSync(mgmtFile, "utf8")); } catch (e) {}
+  }
+
+  M.gammaFlipStrike = r2(flipPrice);
+  M.marketState = spot > flipPrice ? "LONG_GAMMA" : "SHORT_GAMMA";
+  M.gammaProfileAsOf = d.last_trade_time || j.timestamp || new Date().toISOString();
+  
+  writeFileSync(mgmtFile, JSON.stringify(M, null, 2) + "\n");
+  return `Flip strike estimated at $${M.gammaFlipStrike} (${M.marketState})`;
+}
 
 async function chain(dir, tick) {
   const j = await cboe(tick);
@@ -93,7 +202,7 @@ async function iv(dir, tick) {
   };
   const notes = [];
   try {
-    const r = await fetch(`https://www.alphaquery.com/data/option-statistic-chart?ticker=${encodeURIComponent(tick)}&perType=30-Day&identifier=iv-mean`,
+    const r = await fetch(`https://alphaquery.com{encodeURIComponent(tick)}&perType=30-Day&identifier=iv-mean`,
       { headers: { "User-Agent": UA, Accept: "application/json" }, signal: AbortSignal.timeout(30000) });
     const a = r.ok ? await r.json() : [];
     const pts = (Array.isArray(a) ? a : []).map((p) => [String(p.x).slice(0, 10), p.value * 100]);
@@ -109,22 +218,3 @@ async function iv(dir, tick) {
     if (v) V.cboe = merge(V.cboe, [[date, v]]);
     notes.push(`cboe ${v ? v.toFixed(1) : "n/a"}`);
   } catch (e) { notes.push("cboe failed: " + e.message); }
-  V.updated = new Date().toISOString().slice(0, 10);
-  if (V.aq.length || V.cboe.length) writeFileSync(f, JSON.stringify(V) + "\n");
-  return notes.join(", ");
-}
-
-const [mode, ...pick] = process.argv.slice(2);
-if (!["chain", "iv"].includes(mode)) { console.error("usage: fetch-options.mjs chain|iv [dir ...]"); process.exit(2); }
-const list = STOCKS.filter(([d, t]) => !pick.length || pick.includes(d) || pick.includes(t));
-summary(`### Options: ${mode}`);
-const brief = [];
-for (const [dir, tick] of list) {
-  try {
-    const msg = await (mode === "chain" ? chain(dir, tick) : iv(dir, tick));
-    console.log(`${tick}: ${msg}`); summary(`- ${tick}: ${msg}`); brief.push(`${tick} ${msg.split(",")[0]}`);
-  } catch (e) {
-    console.log(`${tick}: skipped (${e.message})`); summary(`- ${tick}: skipped (${e.message})`); brief.push(`${tick} skipped`);
-  }
-}
-if (process.env.GITHUB_ACTIONS) console.log(`::notice title=Options ${mode}::${brief.join(" · ")}`);
