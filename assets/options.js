@@ -134,7 +134,7 @@
 
   function render() {
   if (typeof navLink === "function") navLink();
-  const ivFrom = V && (V.aq.length ? V.aq : V.cboe.length ? V.cboe : null);
+     const ivFrom = V && (V.aq.length ? V.aq[0][0] : V.cboe.length ? V.cboe[0][0] : null);
   let cellSummary = (typeof cells === "function") ? cells() : "";
 
   host.innerHTML = `
