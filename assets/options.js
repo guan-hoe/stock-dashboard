@@ -200,11 +200,17 @@ function drawGammaChart() {
   });
   
   gammaChart = LightweightCharts.createChart(el, {
-    width: el.clientWidth || 400,
+    width: el.clientWidth || 800, // Expanded fallback width for stand-alone layout
     height: 390,
     layout: { background: { color: "transparent" }, textColor: css("--muted"), fontFamily: css("--f-mono") },
     grid: { vertLines: { color: "transparent" }, horzLines: { color: css("--line") } },
-    rightPriceScale: { borderVisible: false },
+    leftPriceScale: { 
+      visible: true, // Forces data values to render on the primary left axis
+      borderVisible: false 
+    },
+    rightPriceScale: { 
+      visible: false // Disables the right panel sidebar alignment engine completely
+    },
     timeScale: {
       borderVisible: false,
       tickMarkFormatter: (time) => {
@@ -217,6 +223,7 @@ function drawGammaChart() {
   });
   
   const area = gammaChart.addAreaSeries({
+    priceScaleId: 'left', // Links dataset variables directly to the left horizontal metrics space
     topColor: "rgba(16, 185, 129, 0.2)",
     bottomColor: "rgba(239, 68, 68, 0.2)",
     lineColor: css("--accent") || "#3b82f6",
