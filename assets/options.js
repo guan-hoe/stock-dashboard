@@ -105,211 +105,170 @@
      #options table.chain{min-width:760px;font-size:12.5px}
      #options table.chain th,#options table.chain td{padding:5px 7px;text-align:right;white-space:nowrap}
      #options table.chain td.k,#options table.chain th.k{text-align:center;font-weight:600;background:color-mix(in srgb,var(--muted) 10%,transparent);position:sticky;left:0;z-index:1}
-     #options table.chain td.k{background:var(--panel);box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--muted) 10%,transparent)}
-     #options table.chain td.itm{background:color-mix(in srgb,var(--accent) 8%,transparent)}
-     #options table.chain tr.spot td{padding:0;height:0;border:0;position:relative;z-index:2}
-     #options table.chain tr.spot td div{border-top:2px solid var(--copper);position:relative;height:0}
-     #options table.chain tr.spot td.k div span{position:absolute;z-index:3;left:50%;transform:translate(-50%,-50%);background:var(--copper);color:#fff;font:600 10.5px var(--f-mono);padding:1px 6px;border-radius:3px;white-space:nowrap}
-     #options table.chain thead tr.grp th{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);text-align:center;border-bottom:none}
-     #options table.chain .dim{color:var(--muted)}
-    #options .gamma-main{height:390px;width:100%}
-    #options .vol-tip, #options .gamma-tip{font:500 11.5px var(--f-mono);color:var(--muted);min-height:17px;margin:2px 0 4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  `;
-  document.head.appendChild(st);
+ #options table.chain td.k{background:var(--panel);box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--muted) 10%,transparent)}
+#options table.chain td.itm{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+#options table.chain tr.spot td{padding:0;height:0;border:0;position:relative;z-index:2}
+#options table.chain tr.spot td div{border-top:2px solid var(--copper);position:relative;height:0}
+#options table.chain tr.spot td.k div span{position:absolute;z-index:3;left:50%;transform:translate(-50%,-50%);background:var(--copper);color:#fff;font:600 10.5px var(--f-mono);padding:1px 6px;border-radius:3px;white-space:nowrap}
+#options table.chain thead tr.grp th{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);text-align:center;border-bottom:none}
+#options table.chain .dim{color:var(--muted)}
+#options .gamma-main{height:390px;width:100%}
+#options .gamma-tip{font:500 11.5px var(--f-mono);color:var(--muted);min-height:17px;margin:2px 0 4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+`;
+document.head.appendChild(st);
+host.innerHTML = <div style="text-align:center;padding:40px 0;color:var(--muted);font-size:13px">${t("loading")}</div>;
+function loadScript(src, cb) {
+if (window.LightweightCharts) return cb();
+const s = document.createElement("script"); s.src = src; s.async = true; s.onload = cb; document.head.appendChild(s);
+}
+Promise.all([
+fetch("data/options.json").then((r) => r.ok ? r.json() : null).catch(() => null),
+fetch("vol.json").then((r) => r.ok ? r.json() : null).catch(() => null),
+fetch("data/history.json").then((r) => r.ok ? r.json() : null).catch(() => null),
+fetch("mgmt.json").then((r) => r.ok ? r.json() : null).catch(() => null),
+]).then(([opt, vol, hist, mgmt]) => {
+if (!opt) {
+failed = true;
+host.innerHTML = <div class="card" style="padding:24px;text-align:center;color:var(--muted);font-size:13px">${t("none")}</div>;
+return;
+}
+O = opt; V = vol; H = hist; M = mgmt;
+loadScript(LW_SRC, render);
+});
+function render() {
+if (typeof navLink === "function") navLink();
+const ivFrom = V && (V.aq.length ? V.aq : V.cboe.length ? V.cboe : null);
+let cellSummary = (typeof cells === "function") ? cells() : "";
+host.innerHTML = `
+${t("h")}
+${t("sub")}
+${cellSummary}
+<button type="button" id="tabBtnVol" aria-selected="${activeTab === "vol"}">${t("tVol")}
+<button type="button" id="tabBtnGamma" aria-selected="${activeTab === "gamma"}">${t("tGamma")}
+<div class="panel id-tab-panel" id="paneVol" style="display: ${activeTab === "vol" ? "block" : "none"}; margin-bottom:16px; width:100%">
 
-  host.innerHTML = `<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:13px">${t("loading")}</div>`;
+${t("hVol")}
 
-  function loadScript(src, cb) {
-    if (window.LightweightCharts) return cb();
-    const s = document.createElement("script"); s.src = src; s.async = true; s.onload = cb; document.head.appendChild(s);
-  }
+${[["3M", 63], ["6M", 126], ["1Y", 252]].map(([l, n]) => '' + l + '').join("")}
 
-  // Simultaneous retrieval pipelines handling safe structural catch falls [1]
-  Promise.all([
-    fetch("data/options.json").then((r) => r.ok ? r.json() : null).catch(() => null),
-    fetch("vol.json").then((r) => r.ok ? r.json() : null).catch(() => null),
-    fetch("data/history.json").then((r) => r.ok ? r.json() : null).catch(() => null),
-    fetch("mgmt.json").then((r) => r.ok ? r.json() : null).catch(() => null),
-  ]).then(([opt, vol, hist, mgmt]) => {
-    if (!opt) { 
-      failed = true; 
-      host.innerHTML = `<div class="card" style="padding:24px;text-align:center;color:var(--muted);font-size:13px">${t("none")}</div>`; 
-      return; 
-    }
-    O = opt; V = vol; H = hist; M = mgmt;
-    loadScript(LW_SRC, render);
-  });
 
-  function render() {
-    if (typeof navLink === "function") navLink();
-    const ivFrom = V && (V.aq.length ? V.aq : V.cboe.length ? V.cboe : null);
-    let cellSummary = (typeof cells === "function") ? cells() : "";
-    
-    host.innerHTML = `
-      <h2>${t("h")}</h2>
-      <p class="sub">${t("sub")}</p>
-      ${cellSummary}
-      
-      <div class="op-tab-headers">
-        <button type="button" id="tabBtnVol" aria-selected="${activeTab === "vol"}">${t("tVol")}</button>
-        <button type="button" id="tabBtnGamma" aria-selected="${activeTab === "gamma"}">${t("tGamma")}</button>
-      </div>
-      
-      <div class="panel id-tab-panel" id="paneVol" style="display: ${activeTab === "vol" ? "block" : "none"}; margin-bottom:16px; width:100%">
-        <div class="op-ctl">
-          <h3 style="margin:0">${t("hVol")}</h3>
-          <span class="gap"></span>
-          ${[["3M", 63], ["6M", 126], ["1Y", 252]].map(([l, n]) => '<button type="button" class="vr" data-n="' + n + '" aria-pressed="' + (volRange === n) + '">' + l + '</button>').join("")}
-        </div>
-        <div class="lg">
-          <span><i style="background:var(--ivc)"></i>${t("lIV")}</span>
-          <span><i style="background:var(--rvc)"></i>${t("lRV30")}</span>
-          <span><i style="background:var(--rv10)"></i>${t("lRV10")}</span>
-          <span><i style="background:var(--accent || '#3b82f6');height:8px;vertical-align:0"></i>${t("lSpr")}</span>
-        </div>
-        <div class="vol-tip" id="volTip"></div>
-        <div class="vol-main" id="volMain"></div>
-        <div class="vol-spr" id="volSpr"><span class="lab2">IV − RV30</span></div>
-        ${ivFrom ? '<p class="op-note" style="margin-bottom:0">' + esc(t("ivNote")(dlong(ivFrom))) + '</p>' : ""}
-      </div>
-      
-      <div class="panel id-tab-panel" id="paneGamma" style="display: ${activeTab === "gamma" ? "block" : "none"}; margin-bottom:16px; width:100%">
-        <h3 style="margin:0 0 4px">${t("hGamma")}</h3>
-        <div class="gamma-tip">—</div>
-        <div class="gamma-main" id="gammaChartContainer"></div>
-      </div>
-      
-      <h3 style="margin:20px 0 8px">${t("hChain")}</h3>
-      <div id="chainBox">${(typeof chainHTML === "function") ? chainHTML() : ""}</div>
-    `;
-    
-    setupTabInteractivity();
-    
-    // Trigger internal chart builders only if their parent container pane is currently active
-    if (activeTab === "vol" && typeof drawVol === "function") drawVol();
-    if (activeTab === "gamma") drawGammaChart();
-  }
+${t("lIV")}
+${t("lRV30")}
+${t("lRV10")}
+${t("lSpr")}
 
-  function setupTabInteractivity() {
-    const btnVol = document.getElementById("tabBtnVol");
-    const btnGamma = document.getElementById("tabBtnGamma");
-    const paneVol = document.getElementById("paneVol");
-    const paneGamma = document.getElementById("paneGamma");
-    
-    if (!btnVol || !btnGamma) return;
-    
-    const switchTab = (target) => {
-      activeTab = target;
-      try { localStorage.setItem("opt-tab", target); } catch (e) {}
-      
-      btnVol.setAttribute("aria-selected", target === "vol");
-      btnGamma.setAttribute("aria-selected", target === "gamma");
-      
-      paneVol.style.display = target === "vol" ? "block" : "none";
-      paneGamma.style.display = target === "gamma" ? "block" : "none";
-      
-      // Dynamically initialize / resize standard layouts on visible state activation updates
-      if (target === "vol" && typeof drawVol === "function") drawVol();
-      if (target === "gamma") drawGammaChart();
-    };
-    
-    btnVol.onclick = () => switchTab("vol");
-    btnGamma.onclick = () => switchTab("gamma");
-  }
 
-  function drawGammaChart() {
-    const el = document.getElementById("gammaChartContainer");
-    const tip = host.querySelector(".gamma-tip");
-    
-    if (!el || !M || !M.gammaChartData || !M.gammaChartData.length) {
-      if (el) el.innerHTML = `<div style="text-align:center;padding-top:150px;color:var(--muted);font-size:12px">No structural Gamma exposure metrics recorded.</div>`;
-      return;
-    }
-    
-    // Clear out stale chart instances before rebuilding to prevent multiple layer pileups
-    el.innerHTML = "";
-    
-    if (tip && M.marketState) {
-      tip.innerHTML = t("gState")(M.marketState, kfmt(M.gammaFlipStrike));
-    }
-    
-    const sorted = [...M.gammaChartData].sort((a, b) => a.price - b.price);
-    
-    const chartData = sorted.map((pt, i) => {
-      const d = new Date(2026, 0, i + 1);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return {
-        time: `${y}-${m}-${day}`,
-        value: pt.netGamma,
-        actualPrice: pt.price
-      };
-    });
-    
-    gammaChart = LightweightCharts.createChart(el, {
-      width: el.clientWidth || 800,
-      height: 390,
-      layout: { background: { color: "transparent" }, textColor: css("--muted"), fontFamily: css("--f-mono") },
-      grid: { vertLines: { color: "transparent" }, horzLines: { color: css("--line") } },
-      leftPriceScale: {
-        visible: true,
-        borderVisible: false
-      },
-      rightPriceScale: {
-        visible: false
-      },
-      timeScale: {
-        borderVisible: false,
-        tickMarkFormatter: (time) => {
-          const str = `${time.year}-${String(time.month).padStart(2, "0")}-${String(time.day).padStart(2, "0")}`;
-          const match = chartData.find(d => d.time === str);
-          return match ? `$${kfmt(match.actualPrice)}` : "";
-        }
-      },
-      crosshair: { mode: 0 }
-    });
-    
-    const area = gammaChart.addAreaSeries({
-      priceScaleId: 'left',
-      topColor: "rgba(16, 185, 129, 0.2)",
-      bottomColor: "rgba(239, 68, 68, 0.2)",
-      lineColor: css("--accent") || "#3b82f6",
-      lineWidth: 2,
-      pointRadius: 0
-    });
-    
-    area.setData(chartData);
-    
-    area.createPriceLine({
-      price: 0,
-      color: "#ef4444",
-      lineWidth: 1,
-      lineStyle: 2,
-      axisLabelVisible: true,
-      title: "Zero Line"
-    });
-    
-    gammaChart.timeScale().fitContent();
-    
-    gammaChart.subscribeCrosshairMove((param) => {
-      if (!param || !param.time || !param.seriesData.get(area)) {
-        if (tip && M.marketState) tip.innerHTML = t("gState")(M.marketState, kfmt(M.gammaFlipStrike));
-        return;
-      }
-      const str = `${param.time.year}-${String(param.time.month).padStart(2, "0")}-${String(param.time.day).padStart(2, "0")}`;
-      const match = chartData.find(d => d.time === str);
-      if (match) {
-        tip.innerHTML = `${t("strike")}: **$${kfmt(match.actualPrice)}** · ${t("lGamma")}: **${Math.round(match.value).toLocaleString()}**`;
-      }
-    });
-    
-    // Automatically trigger internal redraw constraints to accurately recalculate sizes on split updates
-    setTimeout(() => { if (gammaChart && el) gammaChart.resize(el.clientWidth, 390); }, 50);
-  }
 
-  if (typeof drawVol !== "function") window.drawVol = function(){};
-  if (typeof cells !== "function") window.cells = function(){ return ""; };
-  if (typeof chainHTML !== "function") window.chainHTML = function(){ return ""; };
-  if (typeof navLink !== "function") window.navLink = function(){};
+IV − RV30
+${ivFrom ? '' + esc(t("ivNote")(dlong(ivFrom))) + '' : ""}
+<div class="panel id-tab-panel" id="paneGamma" style="display: ${activeTab === "gamma" ? "block" : "none"}; margin-bottom:16px; width:100%">
+${t("hGamma")}
+—
+
+${t("hChain")}
+${(typeof chainHTML === "function") ? chainHTML() : ""}
+`;
+setupTabInteractivity();
+if (activeTab === "vol" && typeof drawVol === "function") drawVol();
+if (activeTab === "gamma") drawGammaChart();
+}
+function setupTabInteractivity() {
+const btnVol = document.getElementById("tabBtnVol");
+const btnGamma = document.getElementById("tabBtnGamma");
+const paneVol = document.getElementById("paneVol");
+const paneGamma = document.getElementById("paneGamma");
+if (!btnVol || !btnGamma) return;
+const switchTab = (target) => {
+activeTab = target;
+try { localStorage.setItem("opt-tab", target); } catch (e) {}
+btnVol.setAttribute("aria-selected", target === "vol");
+btnGamma.setAttribute("aria-selected", target === "gamma");
+paneVol.style.display = target === "vol" ? "block" : "none";
+paneGamma.style.display = target === "gamma" ? "block" : "none";
+if (target === "vol" && typeof drawVol === "function") drawVol();
+if (target === "gamma") drawGammaChart();
+};
+btnVol.onclick = () => switchTab("vol");
+btnGamma.onclick = () => switchTab("gamma");
+}
+function drawGammaChart() {
+const el = document.getElementById("gammaChartContainer");
+const tip = host.querySelector(".gamma-tip");
+if (!el || !M || !M.gammaChartData || !M.gammaChartData.length) {
+if (el) el.innerHTML = <div style="text-align:center;padding-top:150px;color:var(--muted);font-size:12px">No structural Gamma exposure metrics recorded.</div>;
+return;
+}
+el.innerHTML = "";
+if (tip && M.marketState) {
+tip.innerHTML = t("gState")(M.marketState, kfmt(M.gammaFlipStrike));
+}
+const sorted = [...M.gammaChartData].sort((a, b) => a.price - b.price);
+const chartData = sorted.map((pt, i) => {
+const d = new Date(2026, 0, i + 1);
+const y = d.getFullYear();
+const m = String(d.getMonth() + 1).padStart(2, "0");
+const day = String(d.getDate()).padStart(2, "0");
+return {
+time: ${y}-${m}-${day},
+value: pt.netGamma,
+actualPrice: pt.price
+};
+});
+gammaChart = LightweightCharts.createChart(el, {
+width: el.clientWidth || 800,
+height: 390,
+layout: { background: { color: "transparent" }, textColor: css("--muted"), fontFamily: css("--f-mono") },
+grid: { vertLines: { color: "transparent" }, horzLines: { color: css("--line") } },
+leftPriceScale: {
+visible: true,
+borderVisible: false
+},
+rightPriceScale: {
+visible: false
+},
+timeScale: {
+borderVisible: false,
+tickMarkFormatter: (time) => {
+const str = ${time.year}-${String(time.month).padStart(2, "0")}-${String(time.day).padStart(2, "0")};
+const match = chartData.find(d => d.time === str);
+return match ? $${kfmt(match.actualPrice)} : "";
+}
+},
+crosshair: { mode: 0 }
+});
+const area = gammaChart.addAreaSeries({
+priceScaleId: 'left',
+topColor: "rgba(16, 185, 129, 0.2)",
+bottomColor: "rgba(239, 68, 68, 0.2)",
+lineColor: css("--accent") || "#3b82f6",
+lineWidth: 2,
+pointRadius: 0
+});
+area.setData(chartData);
+area.createPriceLine({
+price: 0,
+color: "#ef4444",
+lineWidth: 1,
+lineStyle: 2,
+axisLabelVisible: true,
+title: "Zero Line"
+});
+gammaChart.timeScale().fitContent();
+gammaChart.subscribeCrosshairMove((param) => {
+if (!param || !param.time || !param.seriesData.get(area)) {
+if (tip && M.marketState) tip.innerHTML = t("gState")(M.marketState, kfmt(M.gammaFlipStrike));
+return;
+}
+const str = ${param.time.year}-${String(param.time.month).padStart(2, "0")}-${String(param.time.day).padStart(2, "0")};
+const match = chartData.find(d => d.time === str);
+if (match) {
+tip.innerHTML = ${t("strike")}: **$${kfmt(match.actualPrice)}** · ${t("lGamma")}: **${Math.round(match.value).toLocaleString()}**;
+}
+});
+setTimeout(() => { if (gammaChart && el) gammaChart.resize(el.clientWidth, 390); }, 50);
+}
+if (typeof drawVol !== "function") window.drawVol = function(){};
+if (typeof cells !== "function") window.cells = function(){ return ""; };
+if (typeof chainHTML !== "function") window.chainHTML = function(){ return ""; };
+if (typeof navLink !== "function") window.navLink = function(){};
 })();
