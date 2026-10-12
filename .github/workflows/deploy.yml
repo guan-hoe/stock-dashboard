@@ -69,6 +69,9 @@ jobs:
       - name: Fetch option chains
         run: node scripts/fetch-options.mjs chain
 
+      - name: Fetch option gamma flip
+        run: node scripts/fetch-options.mjs gamma
+
       - name: Fetch latest news
         run: node scripts/fetch-news.mjs
 
