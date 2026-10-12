@@ -231,9 +231,18 @@
         <div class="vol-spr" id="volSpr"><span class="lab2">IV − RV30</span></div>
         ${ivFrom ? `<p class="op-note">${esc(t("ivNote")(dlong(ivFrom)))}</p>` : ""}
       </div>
+
+         
+    <div class="panel" style="margin-bottom:16px; width:100%">
+      <h3 style="margin:0 0 4px">${t("hGamma")}</h3>
+      <div class="gamma-tip">—</div>
+      <div class="gamma-main" id="gammaChartContainer"></div>
+    </div>
+    
       <h3 style="margin:20px 0 8px">${t("hChain")}</h3>
       <div id="chainBox">${chainHTML()}</div>`;
     drawVol();
+   drawGammaChart();
   }
 
   function rerenderChain() { const b = host.querySelector("#chainBox"); if (b) b.innerHTML = chainHTML(); }
@@ -321,4 +330,99 @@
     }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang", "data-theme"] });
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => drawVol());
   })();
+})();
+
+
+function drawGammaChart() {
+  const el = document.getElementById("gammaChartContainer");
+  const tip = host.querySelector(".gamma-tip");
+  
+  if (!el || !M || !M.gammaChartData || !M.gammaChartData.length) {
+    if (el) el.innerHTML = `<div style="text-align:center;padding-top:150px;color:var(--muted);font-size:12px">No structural Gamma exposure metrics recorded.</div>`;
+    return;
+  }
+  
+  if (tip && M.marketState) {
+    tip.innerHTML = t("gState")(M.marketState, kfmt(M.gammaFlipStrike));
+  }
+  
+  const sorted = [...M.gammaChartData].sort((a, b) => a.price - b.price);
+  
+  const chartData = sorted.map((pt, i) => {
+    const d = new Date(2026, 0, i + 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return {
+      time: `${y}-${m}-${day}`,
+      value: pt.netGamma,
+      actualPrice: pt.price
+    };
+  });
+  
+  gammaChart = LightweightCharts.createChart(el, {
+    width: el.clientWidth || 800,
+    height: 390,
+    layout: { background: { color: "transparent" }, textColor: css("--muted"), fontFamily: css("--f-mono") },
+    grid: { vertLines: { color: "transparent" }, horzLines: { color: css("--line") } },
+    leftPriceScale: {
+      visible: true,
+      borderVisible: false
+    },
+    rightPriceScale: {
+      visible: false
+    },
+    timeScale: {
+      borderVisible: false,
+      tickMarkFormatter: (time) => {
+        const str = `${time.year}-${String(time.month).padStart(2, "0")}-${String(time.day).padStart(2, "0")}`;
+        const match = chartData.find(d => d.time === str);
+        return match ? `$${kfmt(match.actualPrice)}` : "";
+      }
+    },
+    crosshair: { mode: 0 }
+  });
+  
+  const area = gammaChart.addAreaSeries({
+    priceScaleId: 'left',
+    topColor: "rgba(16, 185, 129, 0.2)",
+    bottomColor: "rgba(239, 68, 68, 0.2)",
+    lineColor: css("--accent") || "#3b82f6",
+    lineWidth: 2,
+    pointRadius: 0
+  });
+  
+  area.setData(chartData);
+  
+  area.createPriceLine({
+    price: 0,
+    color: "#ef4444",
+    lineWidth: 1,
+    lineStyle: 2,
+    axisLabelVisible: true,
+    title: "Zero Line"
+  });
+  
+  gammaChart.timeScale().fitContent();
+  
+  gammaChart.subscribeCrosshairMove((param) => {
+    if (!param || !param.time || !param.seriesData.get(area)) {
+      if (tip && M.marketState) tip.innerHTML = t("gState")(M.marketState, kfmt(M.gammaFlipStrike));
+      return;
+    }
+    const str = `${param.time.year}-${String(param.time.month).padStart(2, "0")}-${String(param.time.day).padStart(2, "0")}`;
+    const match = chartData.find(d => d.time === str);
+    if (match) {
+      tip.innerHTML = `${t("strike")}: **$${kfmt(match.actualPrice)}** · ${t("lGamma")}: **${Math.round(match.value).toLocaleString()}**`;
+    }
+  });
+  
+  window.addEventListener("resize", () => { if (gammaChart && el) gammaChart.resize(el.clientWidth, 390); });
+}
+
+// Fallback structural initialization hooks matching dependencies down-stream
+if (typeof drawVol !== "function") window.drawVol = function(){};
+if (typeof cells !== "function") window.cells = function(){ return ""; };
+if (typeof chainHTML !== "function") window.chainHTML = function(){ return ""; };
+if (typeof navLink !== "function") window.navLink = function(){};
 })();
