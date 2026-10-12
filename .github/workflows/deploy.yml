@@ -69,7 +69,7 @@ jobs:
       - name: Fetch option chains
         run: node scripts/fetch-options.mjs chain
 
-      - name: Fetch option gamma flip
+      - name: Calculate Dealer Gamma Profiles
         run: node scripts/fetch-options.mjs gamma
 
       - name: Fetch latest news
