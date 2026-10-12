@@ -117,6 +117,18 @@ async function iv(dir, tick) {
   return notes.join(", ");
 }
 
+// Math helper for normal probability distribution approximation
+function normalPDF(x) {
+  return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+}
+
+// Analytical Black-Scholes Gamma formula model engine
+function calculateBSGamma(S, K, T, r, sigma) {
+  if (T <= 0 || sigma <= 0 || S <= 0 || K <= 0) return 0;
+  const d1 = (Math.log(S / K) + (r + (sigma ** 2) / 2) * T) / (sigma * Math.sqrt(T));
+  return normalPDF(d1) / (S * sigma * Math.sqrt(T));
+}
+
 async function gamma(dir, tick) {
   const j = await cboe(tick);
   const d = j.data || {};
