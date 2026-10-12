@@ -11,6 +11,7 @@
 //       aq   = 30-day IV (mean of calls and puts) from alphaquery, which serves the last ~3 months
 //       cboe = Cboe's 30-day IV index for the stock, one reading per trading day from now on
 //     Run once a day after the close by .github/workflows/vol.yml.
+//
 //   node scripts/fetch-options.mjs gamma [dir ...]
 //     Aggregates all multi-expiry contracts from Cboe, maps option positioning distributions via 
 //     Black-Scholes, locates where net dealer positioning crosses zero, and updates <dir>/mgmt.json.
