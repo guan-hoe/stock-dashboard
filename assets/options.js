@@ -125,7 +125,7 @@
 
   function render() {
   if (typeof navLink === "function") navLink();
-  const ivFrom = V && (V.aq.length ? V.aq : V.cboe.length ? V.cboe : null);
+  const ivFrom = V && (V.aq.length ? V.aq[0][0] : V.cboe.length ? V.cboe[0][0] : null);
   let cellSummary = (typeof cells === "function") ? cells() : "";
 
   host.innerHTML = `
@@ -137,7 +137,7 @@
       <div class="op-ctl">
         <h3 style="margin:0">${t("hVol")}</h3>
         <span class="gap"></span>
-        ${[["3M", 63], ["6M", 126], ["1Y", 252]].map(([l, n]) => `<button type="button" class="vr" data-n="\${n}" aria-pressed="volRange === n">{l}</button>`).join("")}
+        ${[["3M", 63], ["6M", 126], ["1Y", 252]].map(([l, n]) => '<button type="button" class="vr" data-n="' + n + '" aria-pressed="' + (volRange === n) + '">' + l + '</button>').join("")}
       </div>
       <div class="lg">
         <span><i style="background:var(--ivc)"></i>${t("lIV")}</span>
@@ -180,7 +180,6 @@ function drawGammaChart() {
   
   const sorted = [...M.gammaChartData].sort((a, b) => a.price - b.price);
   
-  // Timeline scaling converter transformer loops maps
   const chartData = sorted.map((pt, i) => {
     const d = new Date(2026, 0, i + 1);
     const y = d.getFullYear();
