@@ -205,18 +205,22 @@ async function gamma(dir, tick) {
   return `Flip strike estimated at $${M.gammaFlipStrike} (${M.marketState})`;
 }
 
+// Executable Routing Segment matching your structural loop pattern
 const [mode, ...pick] = process.argv.slice(2);
-if (!["chain", "iv"].includes(mode)) { console.error("usage: fetch-options.mjs chain|iv [dir ...]"); process.exit(2); }
+if (!["chain", "iv", "gamma"].includes(mode)) { console.error("usage: fetch-options.mjs chain|iv|gamma [dir ...]"); process.exit(2); }
 const list = STOCKS.filter(([d, t]) => !pick.length || pick.includes(d) || pick.includes(t));
 summary(`### Options: ${mode}`);
 const brief = [];
 for (const [dir, tick] of list) {
   try {
-    const msg = await (mode === "chain" ? chain(dir, tick) : iv(dir, tick));
-    console.log(`${tick}: ${msg}`); summary(`- ${tick}: ${msg}`); brief.push(`${tick} ${msg.split(",")[0]}`);
-  } catch (e) {
-    console.log(`${tick}: skipped (${e.message})`); summary(`- ${tick}: skipped (${e.message})`); brief.push(`${tick} skipped`);
-  }
+    let msg;
+    if (mode === "chain") msg = await chain(dir, tick);
+Use code with caution.
+else if (mode === "iv") msg = await iv(dir, tick);
+else if (mode === "gamma") msg = await gamma(dir, tick);
+console.log(${tick}: ${msg}); summary(- ${tick}: ${msg}); brief.push(${tick} ${msg.split(",")[0]});
+} catch (e) {
+console.log(${tick}: skipped (${e.message})); summary(- ${tick}: skipped (${e.message})); brief.push(${tick} skipped);
 }
-if (process.env.GITHUB_ACTIONS) console.log(`::notice title=Options ${mode}::${brief.join(" · ")}`);
-
+}
+if (process.env.GITHUB_ACTIONS) console.log(::notice title=Options ${mode}::${brief.join(" · ")});
