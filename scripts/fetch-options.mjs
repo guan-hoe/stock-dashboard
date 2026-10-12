@@ -12,23 +12,6 @@
 //       cboe = Cboe's 30-day IV index for the stock, one reading per trading day from now on
 //     Run once a day after the close by .github/workflows/vol.yml.
 //
-// Failures for one stock never stop the others, and existing files are left alone on failure.
-
-
-// Option data for every stock page.
-//
-//   node scripts/fetch-options.mjs chain [dir ...]
-//     Option chain from Cboe's delayed quotes (15-minute delay, IV and greeks by Cboe), trimmed to
-//     the nearest 6 expiries plus the monthlies out to ~13 months (18 at most) and strikes from 60% to 160% of the share price.
-//     Writes <dir>/data/options.json. Run by the deploy workflow on every price refresh (no commit).
-//
-//   node scripts/fetch-options.mjs iv [dir ...]
-//     Daily 30-day implied volatility. Merges two series into <dir>/vol.json, which is committed so
-//     the history keeps growing:
-//       aq   = 30-day IV (mean of calls and puts) from alphaquery, which serves the last ~3 months
-//       cboe = Cboe's 30-day IV index for the stock, one reading per trading day from now on
-//     Run once a day after the close by .github/workflows/vol.yml.
-//
 //   node scripts/fetch-options.mjs gamma [dir ...]
 //     Aggregates all multi-expiry contracts from Cboe, maps option positioning distributions via 
 //     Black-Scholes, locates where net dealer positioning crosses zero, and updates <dir>/mgmt.json.
