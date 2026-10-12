@@ -140,7 +140,6 @@ async function gamma(dir, tick) {
   const today = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
   today.setHours(0, 0, 0, 0);
 
-  // Generate price range scan steps to map out crossover profile points
   const scanPrices = [];
   const steps = 120;
   const minP = spot * 0.75;
@@ -152,9 +151,8 @@ async function gamma(dir, tick) {
   const netGammas = new Array(scanPrices.length).fill(0);
   const riskFreeRate = 0.04; 
 
-  // Process and compute aggregate multi-expiry positioning configurations
   for (const o of d.options) {
-    const m = /^([A-Z.]+?)(\d{6})([CP])(\d{8})\$/.exec(o.option || "");
+    const m = /^([A-Z.]+?)(\d{6})([CP])(\d{8})$/.exec(o.option || "");
     if (!m) continue;
 
     const exp = `20${m[2].slice(0, 2)}-${m[2].slice(2, 4)}-${m[2].slice(4, 6)}`;
@@ -166,7 +164,7 @@ async function gamma(dir, tick) {
     let ivVal = pctIV(o.iv);
     
     if (oi <= 0 || !ivVal) continue;
-    ivVal = ivVal / 100; // Scale back to decimals for BS metrics
+    ivVal = ivVal / 100; 
     const T = days / 365.0;
 
     for (let i = 0; i < scanPrices.length; i++) {
@@ -174,16 +172,13 @@ async function gamma(dir, tick) {
       const g = calculateBSGamma(S, K, T, riskFreeRate, ivVal);
       
       if (m[3] === "C") {
-        // Dealer short calls rule profile impact
         netGammas[i] += g * oi * 100;
       } else if (m[3] === "P") {
-        // Dealer short puts rule profile impact
         netGammas[i] -= g * oi * 100;
       }
     }
   }
 
-  // Pinpoint zero crossing boundary zone index via linear interpolation
   let flipPrice = spot;
   for (let i = 1; i < netGammas.length; i++) {
     if (Math.sign(netGammas[i]) !== Math.sign(netGammas[i - 1])) {
@@ -192,7 +187,12 @@ async function gamma(dir, tick) {
     }
   }
 
-  // Update localized metrics directly into mgmt.json files
+  // Construct chart coordinate data mapping array [ { price, netGamma }, ... ]
+  const profileChartData = scanPrices.map((price, idx) => ({
+    price: r2(price),
+    netGamma: Math.round(netGammas[idx])
+  }));
+
   const mgmtFile = `${dir}/mgmt.json`;
   let M = {};
   if (existsSync(mgmtFile)) {
@@ -202,9 +202,10 @@ async function gamma(dir, tick) {
   M.gammaFlipStrike = r2(flipPrice);
   M.marketState = spot > flipPrice ? "LONG_GAMMA" : "SHORT_GAMMA";
   M.gammaProfileAsOf = d.last_trade_time || j.timestamp || new Date().toISOString();
+  M.gammaChartData = profileChartData; // <-- New graphical data tracking matrix injection
   
   writeFileSync(mgmtFile, JSON.stringify(M, null, 2) + "\n");
-  return `Flip strike estimated at $${M.gammaFlipStrike} (${M.marketState})`;
+  return `Flip strike estimated at $${M.gammaFlipStrike} (${M.marketState}) with ${profileChartData.length} plot points`;
 }
 
 // Executable Routing Segment matching your structural loop pattern
