@@ -16,6 +16,7 @@
 //     Black-Scholes, locates where net dealer positioning crosses zero, and updates <dir>/mgmt.json.
 //
 // Failures for one stock never stop the others, and existing files are left alone on failure.
+//
 import { writeFileSync, readFileSync, existsSync, appendFileSync } from "node:fs";
 
 const STOCKS = [
