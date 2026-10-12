@@ -127,18 +127,17 @@
   });
 
   function render() {
-  if (typeof navLink === "function") navLink();
-  const ivFrom = V && (V.aq.length ? V.aq[0][0] : V.cboe.length ? V.cboe[0][0] : null);
-  let cellSummary = (typeof cells === "function") ? cells() : "";
+    if (typeof navLink === "function") navLink();
+    const ivFrom = V && (V.aq.length ? V.aq : V.cboe.length ? V.cboe : null);
+    let cellSummary = (typeof cells === "function") ? cells() : "";
 
-  host.innerHTML = `
-    <h2>${t("h")}</h2>
-    <p class="sub">${t("sub")}</p>
-    ${cellSummary}
-    
-    <div class="op-split-layout">
-      <!-- Left Pane: Volatility Metrics Analysis Group -->
-      <div class="panel" style="margin-bottom:0">
+    host.innerHTML = `
+      <h2>${t("h")}</h2>
+      <p class="sub">${t("sub")}</p>
+      ${cellSummary}
+      
+      <!-- Volatility Analysis Block (Full Width) -->
+      <div class="panel" style="margin-bottom:16px">
         <div class="op-ctl">
           <h3 style="margin:0">${t("hVol")}</h3>
           <span class="gap"></span>
@@ -148,29 +147,29 @@
           <span><i style="background:var(--ivc)"></i>${t("lIV")}</span>
           <span><i style="background:var(--rvc)"></i>${t("lRV30")}</span>
           <span><i style="background:var(--rv10)"></i>${t("lRV10")}</span>
-          <span><i style="background:var(--up);height:8px;vertical-align:0"></i>${t("lSpr")}</span>
+          <span><i style="background:var(--up||'#3b82f6');height:8px;vertical-align:0"></i>${t("lSpr")}</span>
         </div>
         <div class="vol-tip" id="volTip"></div>
         <div class="vol-main" id="volMain"></div>
         <div class="vol-spr" id="volSpr"><span class="lab2">IV − RV30</span></div>
-        ${ivFrom ? `<p class="op-note" style="margin-bottom:0">\${esc(t("ivNote")(dlong(ivFrom)))}</p>` : ""}
+        ${ivFrom ? `<p class="op-note" style="margin-bottom:0"\(>\text{\${esc(t("ivNote")(dlong(ivFrom)))}}\)</p>` : ""}
       </div>
       
-      <!-- Right Pane: Dealer Options Gamma Profile Mapping Grid -->
-      <div class="panel" style="margin-bottom:0">
+      <!-- Dealer Options Gamma Profile Block (Moved to Independent Full-Width Sub-Table Space) -->
+      <div class="panel" style="margin-bottom:16px">
         <h3 style="margin:0 0 4px">${t("hGamma")}</h3>
         <div class="gamma-tip">—</div>
         <div class="gamma-main" id="gammaChartContainer" style="height:390px; min-height:390px; width:100%"></div>
       </div>
-    </div>
-    
-    <h3 style="margin:20px 0 8px">${t("hChain")}</h3>
-    <div id="chainBox">${(typeof chainHTML === "function") ? chainHTML() : ""}</div>
-  `;
+      
+      <!-- Option Chain Matrix Grid Section -->
+      <h3 style="margin:20px 0 8px">${t("hChain")}</h3>
+      <div id="chainBox">${(typeof chainHTML === "function") ? chainHTML() : ""}</div>
+    `;
 
-  if (typeof drawVol === "function") drawVol();
-  drawGammaChart();
-}
+    if (typeof drawVol === "function") drawVol();
+    if (typeof drawGammaChart === "function") drawGammaChart();
+  }
 
 
 function drawGammaChart() {
