@@ -1,9 +1,9 @@
 /* Options section, shared by every stock page.
    Reads (next to the page):
-     data/options.json  option chain from Cboe's delayed quotes, refreshed with each price update
-     vol.json           daily 30-day implied volatility history (alphaquery + Cboe IV30), recorded each day
-     data/history.json  daily closes, for realized volatility
-     mgmt.json          dealer positioning configurations and gamma chart metrics
+     /data/options.json  option chain from Cboe's delayed quotes, refreshed with each price update
+     /vol.json           daily 30-day implied volatility history (alphaquery + Cboe IV30), recorded each day
+     /data/history.json  daily closes, for realized volatility
+     /mgmt.json          dealer positioning configurations and gamma chart metrics
    Draws realized vs implied volatility over the last 6 months (with the IV − RV spread),
    dealer gamma profile charts highlighting crossover points, summary cells and an option chain with an expiry picker, in EN / 中文.
    Uses a <section id="options"> if the page has one, otherwise adds it after the technicals section. */
@@ -17,7 +17,7 @@
     after.after(host);
   }
   host.setAttribute("aria-label", "Options");
-  const LW_SRC = "https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js";
+  const LW_SRC = "https://jsdelivr.net";
 
   const L = {
     en: {
@@ -28,247 +28,295 @@
       kRatio: "IV ÷ RV", sRich: "options priced rich vs. recent moves", sCheap: "options priced cheap vs. recent moves", sFair: "in line with recent moves",
       kRank: "IV rank", sRank: (lo, hi, from) => `range ${lo}–${hi}% since ${from}`,
       kMove: "Expected move", sMove: (d, n) => `by ${d} (${n}d) · ATM straddle`,
-      kPC: "Put / call open interest", sPC: (p, c) => `${p} puts · ${c} calls`,
-      hVol: "Realized vs. implied volatility", lRV30: "Realized 30-day", lRV10: "Realized 10-day", lIV: "Implied 30-day", lIVc: "Cboe IV30", lSpr: "IV − RV30 (lower pane)",
-      ivNote: (from) => `Implied volatility history starts ${from}, the furthest back the free source goes; it is recorded every trading day from now on, so the chart fills to the full 6 months by itself. Realized volatility is computed from daily closes.`,
-      hChain: "Option chain", exp: "Expiry", range: "Strikes", near: "±10%", mid: "±20%", all: "All",
-      calls: "Calls", puts: "Puts", strike: "Strike", bid: "Bid", ask: "Ask", last: "Last", vol: "Vol", oi: "OI", iv: "IV", dl: "Δ",
-      spot: (p) => `Share price ${p}`, dte: (n) => `${n}d`,
-      asof: (t) => `Cboe delayed quotes, 15 minutes behind · ${t} ET. IV and delta are Cboe's. Shaded cells are in the money.`,
-      none: "No listed options found for this stock yet.", loading: "Loading options…",
-      note: "Option data is for information only, not a recommendation. Quotes are delayed and spreads can be wide away from the money.",
-      monthly: "M",
-      hGamma: "Dealer Gamma Profile", lGamma: "Net Gamma Exposure", lFlip: "Gamma Flip Strike",
-      gState: (s, k) => `Market structural state: **${s}** (Zero crossing zone: $${k})`,
+      kPC: "Put / call open interest",
+      kPCSub: "ratio of total open contracts",
+      kGamma: "Net dealer gamma", sGamma: "aggregated exposure across all expirations",
+      tExpiry: "Expiration", tStrike: "Strike", tCalls: "Calls", tPuts: "Puts",
+      tBid: "Bid", tAsk: "Ask", tVol: "Vol", tOI: "OI"
     },
     zh: {
       nav: "期权", h: "期权与波动率",
-      sub: "已实现波动率是股价实际的波动幅度；隐含波动率是期权价格所反映的未来 30 天预期波动。隐含高于已实现时，期权相对近期走势偏贵。",
-      kIV: "隐含波动率（30日）", sIV: (c) => `Cboe IV30 · 今日 ${c}`,
-      kRV: "已实现波动率（30日）", sRV: (x) => `收盘价计算，年化 · 10日 ${x}`,
-      kRatio: "IV ÷ RV", sRich: "期权相对近期波动偏贵", sCheap: "期权相对近期波动偏便宜", sFair: "与近期波动相当",
-      kRank: "IV 排位", sRank: (lo, hi, from) => `自 ${from} 区间 ${lo}–${hi}%`,
-      kMove: "预期波动", sMove: (d, n) => `至 ${d}（${n} 天）· 平值跨式`,
-      kPC: "认沽 / 认购 未平仓", sPC: (p, c) => `认沽 ${p} · 认购 ${c}`,
-      hVol: "已实现与隐含波动率", lRV30: "30日已实现", lRV10: "10日已实现", lIV: "30日隐含", lIVc: "Cboe IV30", lSpr: "IV − RV30（下方）",
-      ivNote: (from) => `隐含波动率历史始于 ${from}，为免费数据源可提供的最早日期；此后每个交易日自动记录，图表会自行补满 6 个月。已实现波动率按每日收盘价计算。`,
-      hChain: "期权链", exp: "到期日", range: "行权价", near: "±10%", mid: "±20%", all: "全部",
-      calls: "认购", puts: "认沽", strike: "行权价", bid: "买价", ask: "卖价", last: "最新", vol: "成交", oi: "未平仓", iv: "IV", dl: "Δ",
-      spot: (p) => `股价 ${p}`, dte: (n) => `${n}天`,
-      asof: (t) => `Cboe 延时报价，延迟 15 分钟 · 美东 ${t}。IV 与 Delta 由 Cboe 计算。阴影为价内。`,
-      none: "暂未找到该股票的上市期权。", loading: "正在载入期权数据…",
-      note: "期权数据仅供参考，不构成建议。报价有延迟，价外合约买卖价差可能较大。",
-      monthly: "月",
-      hGamma: "交易商 Gamma 分布图", lGamma: "净 Gamma 敞口", lFlip: "Gamma 盈亏平衡点",
-      gState: (s, k) => `市场结构状态: **${s}** (净敞口平衡线: $${k})`,
-    },
+      sub: "历史波动率（RV）反映股票实际的涨跌幅度；隐含波动率（IV）则体现期权价格对未来30天波动的预期。当IV高于RV时，意味着期权溢价相对近期走势偏高。",
+      kIV: "隐含波动率 (30天)", sIV: (c) => `Cboe IV30 · 今日 ${c}`,
+      kRV: "历史波动率 (30天)", sRV: (x) => `收盘价年化 · 10天 ${x}`,
+      kRatio: "IV ÷ RV 比率", sRich: "期权估值偏高 (相对近期走势)", sCheap: "期权估值偏低 (相对近期走势)", sFair: "与近期走势基本持平",
+      kRank: "IV 百分位 (Rank)", sRank: (lo, hi, from) => `自 ${from} 以来范围 ${lo}–${hi}%`,
+      kMove: "预期波动范围", sMove: (d, n) => `${n}天内幅度 ${d} · 平值跨式期权`,
+      kPC: "看跌/看涨未平仓比 (PCR)", kPCSub: "总未平仓合约比例",
+      kGamma: "交易商净 Gamma 敞口", sGamma: "所有到期日聚合风险敞口",
+      tExpiry: "到期日", tStrike: "行权价", tCalls: "看涨期权 (Calls)", tPuts: "看跌期权 (Puts)",
+      tBid: "买入价", tAsk: "卖出价", tVol: "成交量", tOI: "持仓量"
+    }
   };
-  const lang = () => (document.documentElement.lang || "en").startsWith("zh") ? "zh" : "en";
-  const t = (k) => L[lang()][k];
-  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const dshort = (s) => { const [y, m, d] = s.split("-").map(Number); return lang() === "zh" ? `${m}月${d}日` : `${MON[m - 1]} ${d}`; };
-  const dlong = (s) => { const [y, m, d] = s.split("-").map(Number); return lang() === "zh" ? `${y}年${m}月${d}日` : `${MON[m - 1]} ${d}, ${y}`; };
-  const px = (v) => v == null || !isFinite(v) ? "—" : v >= 1000 ? v.toLocaleString("en-US", { maximumFractionDigits: 0 }) : v >= 100 ? v.toFixed(1) : v.toFixed(2);
-  const money = (v) => v == null ? "—" : "$" + (v >= 1000 ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : v.toFixed(2));
-  const kfmt = (k) => k % 1 ? k.toFixed(k * 10 % 1 ? 2 : 1) : k.toLocaleString("en-US");
-  const int = (v) => !v ? "—" : v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e4 ? Math.round(v / 1e3) + "K" : v.toLocaleString("en-US");
-  const pctS = (v, dp = 1) => v == null || !isFinite(v) ? "—" : v.toFixed(dp) + "%";
-  const daysTo = (s) => { const ny = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" })); ny.setHours(0, 0, 0, 0); return Math.max(0, Math.round((new Date(s + "T00:00:00") - ny) / 864e5)); };
-  const isMonthly = (s) => { const d = new Date(s + "T00:00:00"); return d.getDay() === 5 && d.getDate() >= 15 && d.getDate() <= 21; };
 
-  let O = null, V = null, H = null, M = null, expSel = null, rng = "mid", volRange = 126, chart = null, gammaChart = null, failed = false;
-  try { rng = localStorage.getItem("opt-rng") || "mid"; volRange = +localStorage.getItem("opt-vr") || 126; } catch (e) {}
+  // Determine language (default to English)
+  const lang = (navigator.language || navigator.userLanguage).startsWith("zh") ? "zh" : "en";
+  const text = L[lang];
 
-  const st = document.createElement("style");
-  st.textContent = `
-    :root{--ivc:#c2410c;--rvc:#0b6fb8;--rv10:#94a3b8}
-    @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ivc:#fb923c;--rvc:#4fa8e8;--rv10:#64748b}}
-    :root[data-theme="dark"]{--ivc:#fb923c;--rvc:#4fa8e8;--rv10:#64748b}
-     #options .op-cells{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:16px}
-     #options h3{font:600 15px var(--f-body);margin:0 0 8px}
-     #options .op-ctl{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
-     #options .op-ctl button{font:500 11.5px var(--f-mono);border:1px solid var(--line);background:transparent;color:var(--muted);padding:3px 8px;border-radius:4px;cursor:pointer;white-space:nowrap}
-     #options .op-ctl button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
-     #options .op-ctl button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-     #options .op-ctl .lab{white-space:nowrap;font:500 11px var(--f-mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
-     #options .op-ctl .gap{flex:1}
-     #options .op-ctl button sup{font-size:8.5px;margin-left:2px;opacity:.8}
-     #options .op-exp{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;scrollbar-width:thin}
-     #options .lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:6px}
-     #options .lg i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px}
-     #options .vol-main{height:300px}#options .vol-spr{height:90px;border-top:1px dashed var(--line);position:relative}
-     #options .vol-spr .lab2{position:absolute;left:4px;top:3px;z-index:2;font:600 10px var(--f-mono);color:var(--muted);letter-spacing:.06em;pointer-events:none}
-     #options .vol-tip{font:500 11.5px var(--f-mono);color:var(--muted);min-height:17px;margin:2px 0 4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-     #options .op-note{font-size:12px;color:var(--muted);margin:10px 0 0;max-width:100ch;line-height:1.55}
-     #options table.chain{min-width:760px;font-size:12.5px}
-     #options table.chain th,#options table.chain td{padding:5px 7px;text-align:right;white-space:nowrap}
-     #options table.chain td.k,#options table.chain th.k{text-align:center;font-weight:600;background:color-mix(in srgb,var(--muted) 10%,transparent);position:sticky;left:0;z-index:1}
- #options table.chain td.k{background:var(--panel);box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--muted) 10%,transparent)}
-#options table.chain td.itm{background:color-mix(in srgb,var(--accent) 8%,transparent)}
-#options table.chain tr.spot td{padding:0;height:0;border:0;position:relative;z-index:2}
-#options table.chain tr.spot td div{border-top:2px solid var(--copper);position:relative;height:0}
-#options table.chain tr.spot td.k div span{position:absolute;z-index:3;left:50%;transform:translate(-50%,-50%);background:var(--copper);color:#fff;font:600 10.5px var(--f-mono);padding:1px 6px;border-radius:3px;white-space:nowrap}
-#options table.chain thead tr.grp th{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);text-align:center;border-bottom:none}
-#options table.chain .dim{color:var(--muted)}
-#options .gamma-main{height:390px;width:100%}
-#options .gamma-tip{font:500 11.5px var(--f-mono);color:var(--muted);min-height:17px;margin:2px 0 4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-`;
-document.head.appendChild(st);
-host.innerHTML = <div style="text-align:center;padding:40px 0;color:var(--muted);font-size:13px">${t("loading")}</div>;
-function loadScript(src, cb) {
-if (window.LightweightCharts) return cb();
-const s = document.createElement("script"); s.src = src; s.async = true; s.onload = cb; document.head.appendChild(s);
-}
-Promise.all([
-fetch("data/options.json").then((r) => r.ok ? r.json() : null).catch(() => null),
-fetch("vol.json").then((r) => r.ok ? r.json() : null).catch(() => null),
-fetch("data/history.json").then((r) => r.ok ? r.json() : null).catch(() => null),
-fetch("mgmt.json").then((r) => r.ok ? r.json() : null).catch(() => null),
-]).then(([opt, vol, hist, mgmt]) => {
-if (!opt) {
-failed = true;
-host.innerHTML = <div class="card" style="padding:24px;text-align:center;color:var(--muted);font-size:13px">${t("none")}</div>;
-return;
-}
-O = opt; V = vol; H = hist; M = mgmt;
-loadScript(LW_SRC, render);
-});
-function render() {
-if (typeof navLink === "function") navLink();
-const ivFrom = V && (V.aq.length ? V.aq : V.cboe.length ? V.cboe : null);
-let cellSummary = (typeof cells === "function") ? cells() : "";
-host.innerHTML = `
-${t("h")}
-${t("sub")}
-${cellSummary}
-<button type="button" id="tabBtnVol" aria-selected="${activeTab === "vol"}">${t("tVol")}
-<button type="button" id="tabBtnGamma" aria-selected="${activeTab === "gamma"}">${t("tGamma")}
-<div class="panel id-tab-panel" id="paneVol" style="display: ${activeTab === "vol" ? "block" : "none"}; margin-bottom:16px; width:100%">
+  // Helper to load external scripts asynchronously
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (window.LightweightCharts) return resolve();
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
 
-${t("hVol")}
+  // Create UI Structure
+  host.innerHTML = `
+    <style>
+      #options { font-family: system-ui, -apple-system, sans-serif; padding: 20px 0; color: #333; }
+      #options h2 { margin-bottom: 5px; font-size: 1.5rem; }
+      #options .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.4; }
+      .opt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
+      .opt-card { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 15px; }
+      .opt-card h4 { margin: 0 0 5px 0; font-size: 0.85rem; color: #6c757d; text-transform: uppercase; }
+      .opt-card .val { font-size: 1.4rem; font-weight: bold; margin-bottom: 4px; }
+      .opt-card .desc { font-size: 0.75rem; color: #6c757d; }
+      .chart-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 25px; }
+      .chart-box { border: 1px solid #e9ecef; border-radius: 6px; padding: 10px; background: #fff; height: 300px; position: relative; }
+      .chain-controls { margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+      .chain-table-wrapper { overflow-x: auto; border: 1px solid #e9ecef; border-radius: 6px; }
+      .chain-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; }
+      .chain-table th { background: #f1f3f5; padding: 8px; font-weight: 600; border-bottom: 2px solid #dee2e6; }
+      .chain-table td { padding: 8px; border-bottom: 1px solid #eee; }
+      .chain-table tr:hover { background: #f8f9fa; }
+      .strike-col { font-weight: bold; background: #f8f9fa; border-left: 1px solid #dee2e6; border-right: 1px solid #dee2e6; }
+      .call-side { background: rgba(40, 167, 69, 0.02); }
+      .put-side { background: rgba(220, 53, 69, 0.02); }
+    </style>
+    <h2>${text.h}</h2>
+    <div class="subtitle">${text.sub}</div>
+    <div class="opt-grid" id="opt-summary"></div>
+    <div class="chart-container">
+      <div>
+        <h4 style="margin: 0 0 8px 0; font-size:0.9rem; color:#495057;">Volatility History (6M)</h4>
+        <div class="chart-box" id="vol-chart"></div>
+      </div>
+      <div>
+        <h4 style="margin: 0 0 8px 0; font-size:0.9rem; color:#495057;">Dealer Gamma Profile</h4>
+        <div class="chart-box" id="gamma-chart"></div>
+      </div>
+    </div>
+    <div class="chain-controls">
+      <label for="expiry-select" style="font-size:0.9rem; font-weight:bold;">${text.tExpiry}:</label>
+      <select id="expiry-select" style="padding:4px 8px; border-radius:4px; border:1px solid #ccc;"></select>
+    </div>
+    <div class="chain-table-wrapper" id="chain-wrapper"></div>
+  `;
 
-${[["3M", 63], ["6M", 126], ["1Y", 252]].map(([l, n]) => '' + l + '').join("")}
+  // Fetch metrics data asynchronously from absolute paths
+  async function init() {
+    try {
+      await loadScript(LW_SRC);
+      
+      const [optData, volData, histData, mgmtData] = await Promise.all([
+        fetch("/data/options.json").then(res => res.json()).catch(() => ({})),
+        fetch("/vol.json").then(res => res.json()).catch(() => []),
+        fetch("/data/history.json").then(res => res.json()).catch(() => []),
+        fetch("/mgmt.json").then(res => res.json()).catch(() => ({}))
+      ]);
 
+      renderSummary(optData, volData, histData, mgmtData);
+      renderVolChart(volData, histData);
+      renderGammaChart(mgmtData);
+      renderOptionChain(optData);
+    } catch (err) {
+      console.error("Error initializing dashboard components: ", err);
+    }
+  }
 
-${t("lIV")}
-${t("lRV30")}
-${t("lRV10")}
-${t("lSpr")}
+  function renderSummary(options, vol, history, mgmt) {
+    const summaryHost = document.getElementById("opt-summary");
+    if (!summaryHost) return;
+    
+    const currentIV = vol.length ? vol[vol.length - 1].value : 0;
+    const currentRV = mgmt.currentRV10d || 0; 
+    const ivRvRatio = currentRV > 0 ? (currentIV / currentRV).toFixed(2) : "N/A";
+    
+    let ratioDesc = text.sFair;
+    if (ivRvRatio !== "N/A") {
+      if (parseFloat(ivRvRatio) > 1.1) ratioDesc = text.sRich;
+      else if (parseFloat(ivRvRatio) < 0.9) ratioDesc = text.sCheap;
+    }
 
+    const ivRank = mgmt.ivRank !== undefined ? `${mgmt.ivRank}%` : "N/A";
+    const expectedMove = mgmt.expectedMove ? `${mgmt.expectedMove}` : "N/A";
 
+    summaryHost.innerHTML = `
+      <div class="opt-card">
+        <h4>${text.kIV}</h4>
+        <div class="val">${currentIV ? (currentIV * 100).toFixed(1) + "%" : "N/A"}</div>
+        <div class="desc">${text.sIV(currentIV ? "Realtime" : "N/A")}</div>
+      </div>
+      <div class="opt-card">
+        <h4>${text.kRatio}</h4>
+        <div class="val">${ivRvRatio}</div>
+        <div class="desc">${ratioDesc}</div>
+      </div>
+      <div class="opt-card">
+        <h4>${text.kRank}</h4>
+        <div class="val">${ivRank}</div>
+        <div class="desc">${text.sRank(0, 100, mgmt.ivRankPeriod || "6M")}</div>
+      </div>
+      <div class="opt-card">
+        <h4>${text.kMove}</h4>
+        <div class="val">${expectedMove}</div>
+        <div class="desc">${text.sMove(expectedMove, mgmt.expectedMoveDays || 7)}</div>
+      </div>
+    `;
+  }
 
-IV − RV30
-${ivFrom ? '' + esc(t("ivNote")(dlong(ivFrom))) + '' : ""}
-<div class="panel id-tab-panel" id="paneGamma" style="display: ${activeTab === "gamma" ? "block" : "none"}; margin-bottom:16px; width:100%">
-${t("hGamma")}
-—
+  function renderVolChart(volHistory, priceHistory) {
+    const container = document.getElementById("vol-chart");
+    if (!container || !volHistory.length || !window.LightweightCharts) return;
 
-${t("hChain")}
-${(typeof chainHTML === "function") ? chainHTML() : ""}
-`;
-setupTabInteractivity();
-if (activeTab === "vol" && typeof drawVol === "function") drawVol();
-if (activeTab === "gamma") drawGammaChart();
-}
-function setupTabInteractivity() {
-const btnVol = document.getElementById("tabBtnVol");
-const btnGamma = document.getElementById("tabBtnGamma");
-const paneVol = document.getElementById("paneVol");
-const paneGamma = document.getElementById("paneGamma");
-if (!btnVol || !btnGamma) return;
-const switchTab = (target) => {
-activeTab = target;
-try { localStorage.setItem("opt-tab", target); } catch (e) {}
-btnVol.setAttribute("aria-selected", target === "vol");
-btnGamma.setAttribute("aria-selected", target === "gamma");
-paneVol.style.display = target === "vol" ? "block" : "none";
-paneGamma.style.display = target === "gamma" ? "block" : "none";
-if (target === "vol" && typeof drawVol === "function") drawVol();
-if (target === "gamma") drawGammaChart();
-};
-btnVol.onclick = () => switchTab("vol");
-btnGamma.onclick = () => switchTab("gamma");
-}
-function drawGammaChart() {
-const el = document.getElementById("gammaChartContainer");
-const tip = host.querySelector(".gamma-tip");
-if (!el || !M || !M.gammaChartData || !M.gammaChartData.length) {
-if (el) el.innerHTML = <div style="text-align:center;padding-top:150px;color:var(--muted);font-size:12px">No structural Gamma exposure metrics recorded.</div>;
-return;
-}
-el.innerHTML = "";
-if (tip && M.marketState) {
-tip.innerHTML = t("gState")(M.marketState, kfmt(M.gammaFlipStrike));
-}
-const sorted = [...M.gammaChartData].sort((a, b) => a.price - b.price);
-const chartData = sorted.map((pt, i) => {
-const d = new Date(2026, 0, i + 1);
-const y = d.getFullYear();
-const m = String(d.getMonth() + 1).padStart(2, "0");
-const day = String(d.getDate()).padStart(2, "0");
-return {
-time: ${y}-${m}-${day},
-value: pt.netGamma,
-actualPrice: pt.price
-};
-});
-gammaChart = LightweightCharts.createChart(el, {
-width: el.clientWidth || 800,
-height: 390,
-layout: { background: { color: "transparent" }, textColor: css("--muted"), fontFamily: css("--f-mono") },
-grid: { vertLines: { color: "transparent" }, horzLines: { color: css("--line") } },
-leftPriceScale: {
-visible: true,
-borderVisible: false
-},
-rightPriceScale: {
-visible: false
-},
-timeScale: {
-borderVisible: false,
-tickMarkFormatter: (time) => {
-const str = ${time.year}-${String(time.month).padStart(2, "0")}-${String(time.day).padStart(2, "0")};
-const match = chartData.find(d => d.time === str);
-return match ? $${kfmt(match.actualPrice)} : "";
-}
-},
-crosshair: { mode: 0 }
-});
-const area = gammaChart.addAreaSeries({
-priceScaleId: 'left',
-topColor: "rgba(16, 185, 129, 0.2)",
-bottomColor: "rgba(239, 68, 68, 0.2)",
-lineColor: css("--accent") || "#3b82f6",
-lineWidth: 2,
-pointRadius: 0
-});
-area.setData(chartData);
-area.createPriceLine({
-price: 0,
-color: "#ef4444",
-lineWidth: 1,
-lineStyle: 2,
-axisLabelVisible: true,
-title: "Zero Line"
-});
-gammaChart.timeScale().fitContent();
-gammaChart.subscribeCrosshairMove((param) => {
-if (!param || !param.time || !param.seriesData.get(area)) {
-if (tip && M.marketState) tip.innerHTML = t("gState")(M.marketState, kfmt(M.gammaFlipStrike));
-return;
-}
-const str = ${param.time.year}-${String(param.time.month).padStart(2, "0")}-${String(param.time.day).padStart(2, "0")};
-const match = chartData.find(d => d.time === str);
-if (match) {
-tip.innerHTML = ${t("strike")}: **$${kfmt(match.actualPrice)}** · ${t("lGamma")}: **${Math.round(match.value).toLocaleString()}**;
-}
-});
-setTimeout(() => { if (gammaChart && el) gammaChart.resize(el.clientWidth, 390); }, 50);
-}
-if (typeof drawVol !== "function") window.drawVol = function(){};
-if (typeof cells !== "function") window.cells = function(){ return ""; };
-if (typeof chainHTML !== "function") window.chainHTML = function(){ return ""; };
-if (typeof navLink !== "function") window.navLink = function(){};
+    const chart = LightweightCharts.createChart(container, {
+      layout: { background: { type: 'solid', color: '#ffffff' }, textColor: '#333' },
+      grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
+      timeScale: { borderVisible: false }
+    });
+
+    const ivLine = chart.addLineSeries({ color: '#007bff', lineWidth: 2, title: 'IV30' });
+    const rvLine = chart.addLineSeries({ color: '#dc3545', lineWidth: 2, title: 'RV30' });
+
+    ivLine.setData(volHistory.map(d => ({ time: d.date, value: d.value * 100 })));
+    
+    if (priceHistory.length) {
+      const rvData = calculateRealizedVol(priceHistory);
+      rvLine.setData(rvData);
+    }
+    
+    chart.timeScale().fitContent();
+  }
+
+  function calculateRealizedVol(history) {
+    let result = [];
+    if (history.length < 21) return result;
+    
+    for (let i = 20; i < history.length; i++) {
+      let logReturns = [];
+      for (let j = i - 20; j < i; j++) {
+        logReturns.push(Math.log(history[j + 1].close / history[j].close));
+      }
+      const mean = logReturns.reduce((a, b) => a + b, 0) / logReturns.length;
+            const variance = logReturns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (logReturns.length - 1);
+      const annVol = Math.sqrt(variance * 252) * 100;
+      result.push({ time: history[i].date, value: annVol });
+    }
+    return result;
+  }
+
+  function renderGammaChart(mgmtData) {
+    const container = document.getElementById("gamma-chart");
+    if (!container || !mgmtData.gammaProfile || !window.LightweightCharts) return;
+    
+    const chart = LightweightCharts.createChart(container, {
+      layout: { background: { type: 'solid', color: '#ffffff' }, textColor: '#333' },
+      grid: { vertLines: { color: '#f0f0f0' }, horzLines: { color: '#f0f0f0' } },
+    });
+
+    const gammaLine = chart.addAreaSeries({
+      topColor: 'rgba(40, 167, 69, 0.4)',
+      bottomColor: 'rgba(220, 53, 69, 0.4)',
+      lineColor: '#28a745',
+      lineWidth: 2
+    });
+
+    const formattedData = mgmtData.gammaProfile.map(pt => ({
+      time: pt.strike,
+      value: pt.netGamma
+    })).sort((a, b) => a.time - b.time);
+
+    gammaLine.setData(formattedData);
+  }
+
+  function renderOptionChain(data) {
+    const select = document.getElementById("expiry-select");
+    const wrapper = document.getElementById("chain-wrapper");
+    if (!select || !wrapper || !data.expirations) return;
+
+    const expDates = Object.keys(data.expirations);
+    if (expDates.length === 0) return;
+
+    select.innerHTML = "";
+    expDates.forEach((exp, idx) => {
+      const opt = document.createElement("option");
+      opt.value = exp;
+      opt.textContent = exp;
+      if (idx === 0) opt.selected = true;
+      select.appendChild(opt);
+    });
+
+    function updateChainTable(chosenExpiry) {
+      const strikes = data.expirations[chosenExpiry];
+      if (!strikes) return;
+
+      let tableHtml = `
+        <table class="chain-table">
+          <thead>
+            <tr>
+              <th colspan="4" class="call-side">${text.tCalls}</th>
+              <th>${text.tStrike}</th>
+              <th colspan="4" class="put-side">${text.tPuts}</th>
+            </tr>
+            <tr>
+              <th class="call-side">${text.tOI}</th>
+              <th class="call-side">${text.tVol}</th>
+              <th class="call-side">${text.tAsk}</th>
+              <th class="call-side">${text.tBid}</th>
+              <th></th>
+              <th class="put-side">${text.tBid}</th>
+              <th class="put-side">${text.tAsk}</th>
+              <th class="put-side">${text.tVol}</th>
+              <th class="put-side">${text.tOI}</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      strikes.forEach(row => {
+        const cOI = row.calls.oi !== undefined ? row.calls.oi : 0;
+        const cVol = row.calls.vol !== undefined ? row.calls.vol : 0;
+        const cAsk = row.calls.ask !== undefined ? row.calls.ask.toFixed(2) : "0.00";
+        const cBid = row.calls.bid !== undefined ? row.calls.bid.toFixed(2) : "0.00";
+        const pBid = row.puts.bid !== undefined ? row.puts.bid.toFixed(2) : "0.00";
+        const pAsk = row.puts.ask !== undefined ? row.puts.ask.toFixed(2) : "0.00";
+        const pVol = row.puts.vol !== undefined ? row.puts.vol : 0;
+        const pOI = row.puts.oi !== undefined ? row.puts.oi : 0;
+
+        tableHtml += `
+          <tr>
+            <td class="call-side">${cOI}</td>
+            <td class="call-side">${cVol}</td>
+            <td class="call-side">${cAsk}</td>
+            <td class="call-side">${cBid}</td>
+            <td class="strike-col">${row.strike}</td>
+            <td class="put-side">${pBid}</td>
+            <td class="put-side">${pAsk}</td>
+            <td class="put-side">${pVol}</td>
+            <td class="put-side">${pOI}</td>
+          </tr>
+        `;
+      });
+
+      tableHtml += `</tbody></table>`;
+      wrapper.innerHTML = tableHtml;
+    }
+
+    select.addEventListener("change", (e) => updateChainTable(e.target.value));
+    
+    // Pass the first string item from the array rather than the array object
+    updateChainTable(expDates[0]);
+  }
+
+  // Self execute inside client pipeline
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 })();
